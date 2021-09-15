@@ -166,6 +166,7 @@ void loop() {
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <ezButton.h>
+#include <PollingTimer.h>
 
 
 // Pins: Movement Buttons
@@ -193,8 +194,10 @@ void loop() {
 // AccelStepper motor_x2 = AccelStepper(interface, stepPin, dirPin);
 // AccelStepper motor_x3 = AccelStepper(interface, stepPin, dirPin);
 // AccelStepper motor_z = AccelStepper(interface, stepPin, dirPin);
-
 AccelStepper motor_x= AccelStepper(interface, stepPin, dirPin);
+
+// Initializing Timer
+PollingTimer timer;
 
 short memory[MAX_STORAGE];
 
@@ -216,6 +219,9 @@ int recording_size = 0;
 int home_position = 0;
 long last_position = 0;
 
+unsigned long start, end =0;
+double time_elapsed = -1;
+
 // Moves the motor to the specified position=pos
 void translate (AccelStepper *motor, int pos){
   motor->moveTo(pos);
@@ -225,6 +231,7 @@ void translate (AccelStepper *motor, int pos){
 
 void playback_recording(AccelStepper *motor, short recording [], int size){
   Serial.println("Playback Recording:\n");
+  delay(5000);
   for(int i = 0; i < size; i++){
     Serial.println(recording[i]);
   }
@@ -254,6 +261,10 @@ void setup() {
   motor_x.setMaxSpeed(num);
   motor_x.setAcceleration(num);
   motor_x.setCurrentPosition(0);
+
+  // Timer setup
+
+  timer.start();
 }
 // Uses the ezButton library
 void loop() {
@@ -308,7 +319,25 @@ void loop() {
       translate(&motor_x, curr_pos);
   }
   if (curr_pos != last_position){
+    if (timer.isRunning()){
+      Serial.println("Stopping timer");
+      time_elapsed = timer.msec();
+      // end = millis()
+      timer.stop();
+      Serial.println("Time Elapsed: " + String(time_elapsed));
+      // timer.clear();
+    }
+    // end = millis()
+    // Serial.println("Time Elapsed: " + String(time_elapsed));
     Serial.println("Current Position: " + String(curr_pos));
+  }else{
+    // Same position as before start recording time until position changes
+    if (!timer.isRunning()){
+      Serial.println("Starting timer");
+      timer.restart();
+      // start = millis();
+    }
+
   }
 
   // Update the last position
@@ -321,5 +350,7 @@ void loop() {
     // Serial.println("Position: " + curr_pos);
     // delay(500);
   }
+
+  // Serial.println("Difference in time: " + String(end-start));
 
 }
