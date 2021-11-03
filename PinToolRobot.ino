@@ -73,54 +73,54 @@ class LinearActuator{
 AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
 AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
 AccelStepper motor_x3 = AccelStepper(interface, stepPinx3, dirPinx3);
-AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
-AccelStepper motor_z = AccelStepper(interface, stepPinz, dirPinz);
+AccelStepper motor_y  = AccelStepper(interface, stepPiny, dirPiny);
+AccelStepper motor_z  = AccelStepper(interface, stepPinz, dirPinz);
 
 // Instantiating class that encapsulates a list of motor driver objects
 MultiStepper stepperBabies;
 
 // Position Variables
 int curr_posx1;
-int curr_dirx1;
+short curr_dirx1;
 int last_posx1;
-int last_dirx1;
+short last_dirx1;
 
 int curr_posx2;
-int curr_dirx2;
+short curr_dirx2;
 int last_posx2;
-int last_dirx2;
+short last_dirx2;
 
 int curr_posx3;
-int curr_dirx3;
+short curr_dirx3;
 int last_posx3;
-int last_dirx3;
+short last_dirx3;
 
 int curr_posy;
-int curr_diry;
+short curr_diry;
 int last_posy;
-int last_diry;
+short last_diry;
 
 int curr_posz;
-int curr_dirz;
+short curr_dirz;
 int last_posz;
-int last_dirz;
+short last_dirz;
 
 
 // Bounds of each linear actuator
-int x1_left;
-int x1_right;
+long x1_left;
+long x1_right;
 
-int x2_left;
-int x2_right;
+long x2_left;
+long x2_right;
 
-int x3_left;
-int x3_right;
+long x3_left;
+long x3_right;
 
-int y_left;
-int y_right;
+long y_left;
+long y_right;
 
-int z_lower;
-int z_upper;
+long z_lower;
+long z_upper;
 
 
 // ! Replace
@@ -141,28 +141,32 @@ void translate (AccelStepper *motor, int pos){
     -1, move left
 
 */
-void take_step_until_bound(AccelStepper *motor, short dir, int *bound, short limit_switch){
+boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
 
-  // Reset the current position to 0
-  motor.currentPosition(0);
+   /* Reset the current position to 0
+      Parameters should be the position in steps of where the motor is currently... not sure if should be motor->currentPosition()
+   */
+  // motor->setCurrentPosition(motor->currentPosition());
+  motor->setCurrentPosition(0);
   if (dir > 0){
     // Move clockwise
-    motor.move(1);
+    motor->move(1);
   }else{
     // Move counter clockwise
-    motor.move(-1);
+    motor->move(-1);
   }
   // Run movement
-  motor.runSpeedToPosition();
+  motor->runSpeedToPosition();
 
   if ((
       digitalRead(x1_limit_switch) ||
       digitalRead(x2_limit_switch) ||
       digitalRead(x3_limit_switch) ||
       digitalRead(y_limit_switch)  ||
-      digitalRead(z_limit_switch)  ||
+      digitalRead(z_limit_switch)
       ) == HIGH){
-    bound = motor.currentPosition();
+
+    *bound = motor->currentPosition();
     return false;
   }
   return true;
@@ -326,23 +330,27 @@ void test_run_group(){
 // Get all the bounds of each linear actuator
 void calibrate_motors(){
 
+
+  // boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
+
+
   // Get right bound
-  while (take_step_until_bound(motor_x1, 1, &x1_left)){;}
+  while (take_step_until_bound(&motor_x1, 1, &x1_left)){;}
   // Get left bound
-  while (take_step_until_bound(motor_x1, -1, &x1_right)){;}
+  while (take_step_until_bound(&motor_x1, -1, &x1_right)){;}
 
 
-  while (take_step_until_bound(motor_x2, 1, &x2_left )){;}
-  while (take_step_until_bound(motor_x2, -1, &x2_right)){;}
+  while (take_step_until_bound(&motor_x2, 1, &x2_left )){;}
+  while (take_step_until_bound(&motor_x2, -1, &x2_right)){;}
 
-  while (take_step_until_bound(motor_x3, 1, &x3_left)){;}
-  while (take_step_until_bound(motor_x3, -1, &x3_right)){;}
+  while (take_step_until_bound(&motor_x3, 1, &x3_left)){;}
+  while (take_step_until_bound(&motor_x3, -1, &x3_right)){;}
 
-  while (take_step_until_bound(motor_y, 1, &y_left)){;}
-  while (take_step_until_bound(motor_y, -1, &y_right)){;}
+  while (take_step_until_bound(&motor_y, 1, &y_left)){;}
+  while (take_step_until_bound(&motor_y, -1, &y_right)){;}
 
-  while (take_step_until_bound(motor_z, 1, &z_lower)){;}
-  while (take_step_until_bound(motor_z, -1, &z_upper)){;}
+  while (take_step_until_bound(&motor_z, 1, &z_lower)){;}
+  while (take_step_until_bound(&motor_z, -1, &z_upper)){;}
 }
 
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time){
@@ -353,8 +361,10 @@ void do_cycle(int num_wash_steps, int pin_depth, int drying_time){
 
 void run_all_cycles(short num_cycles, short num_wash_steps, int pin_depth, int drying_time){
   for(int i = 0; i < num_cycles; i++){
-    do_cycle(num_cycles, num_wash_steps, pin_depth, drying_time);
+    do_cycle(num_wash_steps, pin_depth, drying_time);
+  }
 }
+
 
 void setup() {
 
