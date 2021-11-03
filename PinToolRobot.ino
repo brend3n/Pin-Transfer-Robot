@@ -1,6 +1,35 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 
+
+// ! NOTICE
+// Potential class implementation for a linear actuator
+// There is no urge to incorporate OOP but could be cleaner in grouping stuff together
+// Might work on this later, while waiting for parts for robot but done with calibration and such
+// Changing to this might result in full refactor of code though.
+
+
+/*
+class LinearActuator{
+
+  public: 
+    int curr_dir;
+    int curr_pos;
+    int last_pos;
+    int last_dir;
+
+    int max_speed;
+    int acceleration;
+
+    int lower_bound;
+    int upper_bound;
+    
+    LinearActuator(){
+    }
+}
+*/
+
+
 /* Pin Definitions*/
 
 // Motor driver type
