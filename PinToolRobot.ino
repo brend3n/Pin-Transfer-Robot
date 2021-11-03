@@ -7,36 +7,36 @@
 #define interface 1
 
 // Direction and Step pins for all motors
-#define dirPinx1 29
+#define dirPinx1  29
 #define stepPinx1 27
 
-#define dirPinx2 43
+#define dirPinx2  43
 #define stepPinx2 45
 
-#define dirPinx3 51
+#define dirPinx3  51
 #define stepPinx3 49
 
-#define dirPiny 42
-#define stepPiny 44
+#define dirPiny   42
+#define stepPiny  44
 
-#define dirPinz 36
-#define stepPinz 37
+#define dirPinz   36
+#define stepPinz  37
 
 // Number of steps in a single step of the motor
 #define STEP 100
 
 // Speed of all the motors
-#define MAX_SPEED 500
+#define MAX_SPEED        500
 #define MAX_ACCELERATION 500
 
 #define MAX_RUN_DISTANCE 100
 
 
-#define x1_limit_switch
-#define x2_limit_switch
-#define x3_limit_switch
-#define y_limit_switch
-#define z_limit_switch 
+#define x1_limit_switch -1
+#define x2_limit_switch -1
+#define x3_limit_switch -1
+#define y_limit_switch  -1
+#define z_limit_switch  -1
 
 
 // Instantiating motor driver objects
@@ -316,17 +316,15 @@ void calibrate_motors(){
 }
 
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time){
-
-
-
-
+  // Beginning Stage
+  // etc ...
+  // Final Stage
 }
 
 void run_all_cycles(short num_cycles, short num_wash_steps, int pin_depth, int drying_time){
   for(int i = 0; i < num_cycles; i++){
     do_cycle(num_cycles, num_wash_steps, pin_depth, drying_time);
 }
-
 
 void setup() {
 
@@ -349,7 +347,7 @@ void loop() {
   // test_run_individual(curr_posx,curr_posy,curr_posz);
   test_run_group();
 
-  run_all_cycles();
+  // run_all_cycles();
 
   // Update the last position and last direction
   update_motor_states();
