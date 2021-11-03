@@ -17,6 +17,7 @@ class LinearActuator{
     int curr_pos;
     int last_pos;
     int last_dir;
+    AccelStepper motor;
 
     int max_speed;
     int acceleration;
