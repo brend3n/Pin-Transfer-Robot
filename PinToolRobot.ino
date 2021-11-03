@@ -329,7 +329,7 @@ void run_all_cycles(short num_cycles, short num_wash_steps, int pin_depth, int d
 void setup() {
 
   // TESTING: Begin serial connection for debugging
-  Serial.begin(38400);
+  Serial.begin(9600);
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
