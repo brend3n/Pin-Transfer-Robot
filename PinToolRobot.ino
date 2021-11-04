@@ -333,7 +333,6 @@ void calibrate_motors(){
 
   // boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
 
-
   // Get right bound
   while (take_step_until_bound(&motor_x1, 1, &x1_left)){;}
   // Get left bound
@@ -378,7 +377,7 @@ void setup() {
   add_all_steppers_to_manager();
 
   // Determine the bounds of each actuator
-  calibrate_motors();
+  // calibrate_motors();
 }
 
 void loop() {
