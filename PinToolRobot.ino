@@ -12,6 +12,12 @@
 class LinearActuator{
 
   public: 
+
+    short dir_pin;
+    short step_pin;
+
+    short limit_switch;
+
     int curr_dir;
     int curr_pos;
     int last_pos;
@@ -24,7 +30,15 @@ class LinearActuator{
     int lower_bound;
     int upper_bound;
     
-    LinearActuator(){
+    LinearActuator(short dir, short step. short limit, int max_speed, int acceleration){
+      this->dir_pin = dir;
+      this->step_pin = step;
+      this->limit_switch = limit;
+
+      this->acceleration = acceleration;
+      this->max_speed = max_speed;
+
+      this->motor = AccelStepper(interface, this->step_pin, this->dir_pin);
     }
 }
 
