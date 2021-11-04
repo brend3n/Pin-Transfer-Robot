@@ -30,7 +30,7 @@ class LinearActuator{
 }
 */
 
-
+/*###########################################################################################*/
 /* Pin Definitions*/
 
 // Motor driver type
@@ -52,13 +52,13 @@ class LinearActuator{
 #define dirPinz   36
 #define stepPinz  37
 
+/*CONTSTANTS*/
 // Number of steps in a single step of the motor
 #define STEP 100
 
 // Speed of all the motors
 #define MAX_SPEED        500
 #define MAX_ACCELERATION 500
-
 #define MAX_RUN_DISTANCE 100
 
 
@@ -68,16 +68,9 @@ class LinearActuator{
 #define y_limit_switch  -1
 #define z_limit_switch  -1
 
+#define big_red_button  -1
 
-// Instantiating motor driver objects
-AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
-AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
-AccelStepper motor_x3 = AccelStepper(interface, stepPinx3, dirPinx3);
-AccelStepper motor_y  = AccelStepper(interface, stepPiny, dirPiny);
-AccelStepper motor_z  = AccelStepper(interface, stepPinz, dirPinz);
-
-// Instantiating class that encapsulates a list of motor driver objects
-MultiStepper stepperBabies;
+/*###########################################################################################*/
 
 // Position Variables
 int curr_posx1;
@@ -122,7 +115,22 @@ long y_right;
 long z_lower;
 long z_upper;
 
+/*###########################################################################################*/
 
+// Instantiating motor driver objects
+AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
+AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
+AccelStepper motor_x3 = AccelStepper(interface, stepPinx3, dirPinx3);
+AccelStepper motor_y  = AccelStepper(interface, stepPiny, dirPiny);
+AccelStepper motor_z  = AccelStepper(interface, stepPinz, dirPinz);
+
+// Instantiating class that encapsulates a list of motor driver objects
+MultiStepper stepperBabies;
+
+/*###########################################################################################*/
+
+
+// WORKS
 // ! Replace
 // this function can be replaced with AccelStepper function to do the same thing -> Need to ask Yousef which function it was
 // Moves the motor to the specified position=pos
@@ -132,7 +140,7 @@ void translate (AccelStepper *motor, int pos){
   return;
 }
 
-
+// TEST
 // Takes a single step in a given direction
 /*
 
@@ -186,6 +194,9 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   Moving Left returns -1:   new_pos < last_pos  
   Not Moving returns 0:     new_pos = last_pos
 */
+
+// TEST
+// Should be working but need to test
 int curr_direction(int last_pos, int new_pos){
   if (new_pos > last_pos){
     return 1;
@@ -196,7 +207,19 @@ int curr_direction(int last_pos, int new_pos){
   }
 }
 
+// TEST
+// Should be working but need testing
+void set_pins(){
+  digitalPin(x1_limit_switch, INPUT);
+  digitalPin(x2_limit_switch, INPUT);
+  digitalPin(x3_limit_switch, INPUT);
+  digitalPin(y_limit_switch, INPUT);
+  digitalPin(z_limit_switch, INPUT);
 
+  attachInterrupt(digitalPinToInterrupt(big_red_button), emergency_shut_off, RISING);
+}
+
+// WORKS
 // Configure each motor
 void configure_motors(){
 
@@ -217,6 +240,7 @@ void configure_motors(){
   motor_z.setAcceleration(MAX_ACCELERATION);
 }
 
+// TEST
 // Add all motors to MultiStepper object
 void add_all_steppers_to_manager(){
   stepperBabies.addStepper(motor_x1);
@@ -226,6 +250,7 @@ void add_all_steppers_to_manager(){
   stepperBabies.addStepper(motor_z);
 }
 
+// TEST
 // Updates all of the current directions that each motor was previously moving in
 void update_last_directions(){
   last_dirx1 = curr_direction(last_posx1, motor_x1.currentPosition());
@@ -235,6 +260,7 @@ void update_last_directions(){
   last_dirz  = curr_direction(last_posz,  motor_z.currentPosition());
 }
 
+// TEST
 // Updates all of the last positions that each motor was previously at
 void update_last_positions(){
   last_posx1 = motor_x1.currentPosition();
@@ -244,12 +270,14 @@ void update_last_positions(){
   last_posz = motor_z.currentPosition();
 }
 
+// TEST
 // Updates all motor states
 void update_motor_states(){
   update_last_directions();
   update_last_positions();
 }
 
+// WORKS
 void test_run_individual(int curr_posx1, int curr_posx2, int curr_posx3,  int curr_posy, int curr_posz){
 // Move counter-clockwise
 
@@ -292,6 +320,7 @@ void test_run_individual(int curr_posx1, int curr_posx2, int curr_posx3,  int cu
   translate(&motor_z, curr_posz);
 }
 
+// WORKS
 void test_run_group(){
   // Set all positions for the motors to move in
 
@@ -326,7 +355,7 @@ void test_run_group(){
   delay(1010);
 }
 
-
+// TEST
 // Get all the bounds of each linear actuator
 void calibrate_motors(){
 
@@ -337,7 +366,6 @@ void calibrate_motors(){
   while (take_step_until_bound(&motor_x1, 1, &x1_left)){;}
   // Get left bound
   while (take_step_until_bound(&motor_x1, -1, &x1_right)){;}
-
 
   while (take_step_until_bound(&motor_x2, 1, &x2_left )){;}
   while (take_step_until_bound(&motor_x2, -1, &x2_right)){;}
@@ -352,16 +380,54 @@ void calibrate_motors(){
   while (take_step_until_bound(&motor_z, -1, &z_upper)){;}
 }
 
+// TODO
+// Take plate from a stack
+void pull_from_stack(AccelStepper *motor, int stack){
+
+}
+
+// TODO
+// Put a plate onto a stack
+void push_onto_stack(AccelStepper *motor, int stack){
+
+}
+
+
+// TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time){
   // Beginning Stage
   // etc ...
   // Final Stage
 }
 
+// TEST
 void run_all_cycles(short num_cycles, short num_wash_steps, int pin_depth, int drying_time){
   for(int i = 0; i < num_cycles; i++){
     do_cycle(num_wash_steps, pin_depth, drying_time);
   }
+}
+
+// TEST
+// DOMINIC
+// LCD stuff
+boolean wait_for_ok_from_user(){
+  // Ask user if ok to start again
+  // Take user input
+  // If user input == yes, then return true
+  // Else, return false
+
+  return false;
+}
+
+// TEST
+// Function to trigger when emergency stop button is pressed
+void emergency_shut_off(){
+  stop_all_motors();
+
+  // Wait for ok from user on LCD
+  while (!wait_for_ok_from_user()){;}
+  setup();
+  loop();
 }
 
 
@@ -369,6 +435,9 @@ void setup() {
 
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
+
+  // Set the state of any pins used as inputs
+  set_pins();
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
