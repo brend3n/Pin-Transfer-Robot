@@ -8,7 +8,7 @@
 // Might work on this later, while waiting for parts for robot but done with calibration and such
 // Changing to this might result in full refactor of code though.
 
-
+/*
 class LinearActuator{
 
   public: 
@@ -17,7 +17,6 @@ class LinearActuator{
     short step_pin;
 
     short limit_switch;
-
     int curr_dir;
     int curr_pos;
     int last_pos;
@@ -41,7 +40,7 @@ class LinearActuator{
       this->motor = AccelStepper(interface, this->step_pin, this->dir_pin);
     }
 }
-
+*/
 
 
 /* Pin Definitions*/
