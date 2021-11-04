@@ -31,7 +31,7 @@ class LinearActuator{
 */
 
 /*###########################################################################################*/
-/* Pin Definitions*/
+/* Motor Pin Definitions*/
 
 // Motor driver type
 #define interface 1
@@ -62,6 +62,14 @@ class LinearActuator{
 #define MAX_RUN_DISTANCE 100
 
 
+// 0 -> Middle
+// 1 -> Right/Upper
+//-1 -> Left/Lower
+#define REFERENCE_POS 0
+
+// Change to false to do polling
+#define INTERRUPTS_ENABLED true
+
 #define x1_limit_switch -1
 #define x2_limit_switch -1
 #define x3_limit_switch -1
@@ -70,7 +78,33 @@ class LinearActuator{
 
 #define big_red_button  -1
 
+
+
 /*###########################################################################################*/
+
+/*###########################################################################################*/
+/* LCD Pin Definitions*/
+
+//<Adafruit_TFTLCD.h>
+//#include <TouchScreen.h>
+
+//#define LCD_CS A3
+//#define LCD_CD A2
+//#define LCD_WR A1
+//#define LCD_RD A0
+//#define LCD_RESET A4
+//#define YP A2  
+//#define XM A3 
+//#define YM 8   
+//#define XP 9 
+//#define BLACK 0x0000
+//#define WHITE 0xFFFF
+//
+//Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+//TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+
+/*###########################################################################################*/
+
 
 // Position Variables
 int curr_posx1;
@@ -100,20 +134,20 @@ short last_dirz;
 
 
 // Bounds of each linear actuator
-long x1_left;
-long x1_right;
+long x1_left  = -1;
+long x1_right = -1;
 
-long x2_left;
-long x2_right;
+long x2_left  = -1;
+long x2_right = -1;
 
-long x3_left;
-long x3_right;
+long x3_left  = -1;
+long x3_right = -1;
 
-long y_left;
-long y_right;
+long y_left   = -1;
+long y_right  = -1;
 
-long z_lower;
-long z_upper;
+long z_lower  = -1;
+long z_upper  = -1;
 
 /*###########################################################################################*/
 
@@ -180,6 +214,19 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   return true;
 }
 
+// TEST
+void find_bound(AccelStepper *motor, short dir, long *bound){
+  
+  // Reset the current position
+  motor->setCurrentPosition(0);
+
+  motor->moveTo(dir*MAX_RUN_DISTANCE);
+  motor->runSpeedToPosition();
+
+  return;
+
+}
+
 
 // Computes the direction the motor is moving in
 /* 
@@ -210,13 +257,26 @@ int curr_direction(int last_pos, int new_pos){
 // TEST
 // Should be working but need testing
 void set_pins(){
-  digitalPin(x1_limit_switch, INPUT);
-  digitalPin(x2_limit_switch, INPUT);
-  digitalPin(x3_limit_switch, INPUT);
-  digitalPin(y_limit_switch, INPUT);
-  digitalPin(z_limit_switch, INPUT);
 
+  // Emergency Stop button
   attachInterrupt(digitalPinToInterrupt(big_red_button), emergency_shut_off, RISING);
+
+  if (INTERRUPTS_ENABLED){
+    // Limit Switches
+    attachInterrupt(digitalPinToInterrupt(x1_limit_switch), x1_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(x2_limit_switch), x2_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(x3_limit_switch), x3_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(y_limit_switch), y_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(z_limit_switch), z_ISR, RISING);
+  }else{
+    // Polling inputs
+    pinMode(x1_limit_switch, INPUT);
+    pinMode(x2_limit_switch, INPUT);
+    pinMode(x3_limit_switch, INPUT);
+    pinMode(y_limit_switch, INPUT);
+    pinMode(z_limit_switch, INPUT);
+  }
+  
 }
 
 // WORKS
@@ -239,6 +299,15 @@ void configure_motors(){
   motor_y.setAcceleration(MAX_ACCELERATION);
   motor_z.setAcceleration(MAX_ACCELERATION);
 }
+
+// Initialize the LCD.
+//void configure_LCD(){
+//  tft.reset();
+//  uint16_t identifier = tft.readID();
+//  tft.begin(identifier);
+//  tft.setTextColor(WHITE);
+//  tft.setTextSize(2);
+//}
 
 // TEST
 // Add all motors to MultiStepper object
@@ -278,46 +347,52 @@ void update_motor_states(){
 }
 
 // WORKS
-void test_run_individual(int curr_posx1, int curr_posx2, int curr_posx3,  int curr_posy, int curr_posz){
+void test_run_individual(){
 // Move counter-clockwise
 
-  // X linear actuators
-  curr_posx1 = curr_posx1 - STEP;
-  translate(&motor_x1, curr_posx1);
+  long target_posx1;
+  long target_posx2;
+  long target_posx3;
+  long target_posy;
+  long target_posz;
 
-  curr_posx2 = curr_posx2 - STEP;
-  translate(&motor_x2, curr_posx2);
+  // X
+  target_posx1 = motor_x1.currentPosition() - STEP;
+  translate(&motor_x1, target_posx1);
 
-  curr_posx3 = curr_posx3 - STEP;
-  translate(&motor_x3, curr_posx3);
+  target_posx2 = motor_x2.currentPosition() - STEP;
+  translate(&motor_x2, target_posx2);
+
+  target_posx3 = motor_x3.currentPosition() - STEP;
+  translate(&motor_x3, target_posx3);
 
   // Y
-  curr_posy = curr_posy - STEP;
-  translate(&motor_y, curr_posy);
+  target_posy = motor_y.currentPosition() - STEP;
+  translate(&motor_y, target_posy);
 
   // Z
-  curr_posz = curr_posz - STEP;
-  translate(&motor_z, curr_posz);
+  target_posz = motor_z.currentPosition() - STEP;
+  translate(&motor_z, target_posz);
 
   
   // Move clockwise
   // X
-  curr_posx1 = curr_posx1 + STEP;
-  translate(&motor_x1, curr_posx1);
+  target_posx1 = motor_x1.currentPosition() + STEP;
+  translate(&motor_x1, target_posx1);
 
-  curr_posx2 = curr_posx2 + STEP;
-  translate(&motor_x2, curr_posx2);
+  target_posx2 = motor_x2.currentPosition() + STEP;
+  translate(&motor_x2, target_posx2);
 
-  curr_posx3 = curr_posx3 + STEP;
-  translate(&motor_x3, curr_posx3);
+  target_posx3 = motor_x3.currentPosition() + STEP;
+  translate(&motor_x3, target_posx3);
 
   // Y
-  curr_posy = curr_posy + STEP;
-  translate(&motor_y, curr_posy);
+  target_posy = motor_y.currentPosition() + STEP;
+  translate(&motor_y, target_posy);
 
   // Z
-  curr_posz = curr_posz + STEP;
-  translate(&motor_z, curr_posz);
+  target_posz = motor_z.currentPosition() + STEP;
+  translate(&motor_z, target_posz);
 }
 
 // WORKS
@@ -355,12 +430,65 @@ void test_run_group(){
   delay(1010);
 }
 
+// Test
+// Returns the mid point between two points
+long mid_point(long lower_bound, long upper_bound){
+  return ((upper_bound + lower_bound)/2);
+}
+
+// TEST
+// Moves all motors to their respective reference points
+void go_to_reference(){
+  long positions[5];
+
+  if(REFERENCE_POS == 0){
+    // Send all motors to their midpoint on linear actuator
+    positions[0] = mid_point(x1_left, x1_right);
+    positions[1] = mid_point(x2_left, x2_right);
+    positions[2] = mid_point(x3_left, x3_right);
+    positions[3] = mid_point(y_left, y_right);
+    positions[4] = mid_point(z_lower, z_upper);
+
+    // Set target positions
+    stepperBabies.moveTo(positions);
+
+    // Run motors to target positions
+    stepperBabies.runSpeedToPosition();
+
+  }else if(REFERENCE_POS == 1){
+    // Send all motors to their midpoint on linear actuator
+    positions[0] = x1_right;
+    positions[1] = x2_right;
+    positions[2] = x3_right;
+    positions[3] = y_right;
+    positions[4] = z_upper;
+
+    // Set target positions
+    stepperBabies.moveTo(positions);
+
+    // Run motors to target positions
+    stepperBabies.runSpeedToPosition();
+
+  }else if(REFERENCE_POS == -1){
+    // Send all motors to their midpoint on linear actuator
+    positions[0] = x1_left;
+    positions[1] = x2_left;
+    positions[2] = x3_left;
+    positions[3] = y_left;
+    positions[4] = z_lower;
+
+    // Set target positions
+    stepperBabies.moveTo(positions);
+
+    // Run motors to target positions
+    stepperBabies.runSpeedToPosition();
+
+  }
+}
+
 // TEST
 // Get all the bounds of each linear actuator
-void calibrate_motors(){
-
-
-  // boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
+void calibrate_motors_polling(){
 
   // Get right bound
   while (take_step_until_bound(&motor_x1, 1, &x1_left)){;}
@@ -378,6 +506,47 @@ void calibrate_motors(){
 
   while (take_step_until_bound(&motor_z, 1, &z_lower)){;}
   while (take_step_until_bound(&motor_z, -1, &z_upper)){;}
+
+  go_to_reference();
+}
+
+// TEST
+// Get all the bounds of each linear actuator
+void calibrate_motors_interrupts(){
+  find_bound(&motor_x1,1,&x1_left);
+  find_bound(&motor_x1,1,&x1_right);
+
+  delay(500);
+
+  find_bound(&motor_x2,1,&x2_right);
+  find_bound(&motor_x2,1,&x2_right);
+
+  delay(500);
+
+  find_bound(&motor_x3,1,&x3_left);
+  find_bound(&motor_x3,1,&x3_right);
+
+  delay(500);
+
+  find_bound(&motor_y,1,&y_left);
+  find_bound(&motor_y,1,&y_right);
+
+  delay(500);
+
+  find_bound(&motor_z,1,&z_lower);
+  find_bound(&motor_z,1,&z_upper);
+
+  go_to_reference();
+}
+
+// TEST
+// Runs the calibration sequence depending on whether interrupts are enabled.
+void calibrate_motors(){
+  if (INTERRUPTS_ENABLED){
+    calibrate_motors_interrupts();
+  }else{
+    calibrate_motors_polling();
+  }
 }
 
 // TODO
@@ -419,10 +588,14 @@ boolean wait_for_ok_from_user(){
   return false;
 }
 
+
+/*###########################################################################################*/
+/* Interrupt Service Routines (ISRs) */
+
 // TEST
 // Function to trigger when emergency stop button is pressed
 void emergency_shut_off(){
-  stop_all_motors();
+//  stop_all_motors();
 
   // Wait for ok from user on LCD
   while (!wait_for_ok_from_user()){;}
@@ -430,6 +603,51 @@ void emergency_shut_off(){
   loop();
 }
 
+void x1_ISR(){
+  motor_x1.stop();
+  if (x1_left == -1){
+    x1_left = motor_x1.currentPosition();
+  }else{
+    x1_right = motor_x1.currentPosition();
+  }
+}
+
+void x2_ISR(){
+ motor_x2.stop();
+ if (x2_left == -1){
+    x2_left = motor_x2.currentPosition();
+  }else{
+    x2_right = motor_x2.currentPosition();
+  }
+}
+
+void x3_ISR(){
+  motor_x3.stop();
+  if (x3_left == -1){
+    x3_left = motor_x3.currentPosition();
+  }else{
+    x3_right = motor_x3.currentPosition();
+  }
+}
+
+void y_ISR(){
+  motor_y.stop();
+  if (y_left == -1){
+    y_left = motor_y.currentPosition();
+  }else{
+    y_right = motor_y.currentPosition();
+  }
+}
+
+void z_ISR(){
+  motor_z.stop();
+  if (z_lower == -1){
+    z_lower = motor_z.currentPosition();
+  }else{
+    z_upper = motor_z.currentPosition();
+  }
+}
+/*###########################################################################################*/
 
 void setup() {
 
@@ -441,19 +659,24 @@ void setup() {
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
+
+  // Initialize LCD
+  // configure_LCD();
   
   // Add stepper motor objects to MultiStepper object
   add_all_steppers_to_manager();
 
   // Determine the bounds of each actuator
-  // calibrate_motors();
+  // calibrate_motors_polling();
+  // calibrate_motors_interrupts();
+  calibrate_motors();
 }
 
 void loop() {
 
   // Run test code
-  // test_run_individual(curr_posx,curr_posy,curr_posz);
-  test_run_group();
+  // test_run_individual();
+  // test_run_group();
 
   // run_all_cycles();
 
