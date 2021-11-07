@@ -633,20 +633,39 @@ void do_wash(){
 
 }
 
-// TESTING
-void do_fan(){
+// TEST
+// Allows fan to draw from power supply
+void fan_on(){
+
   digitalWrite(fan_pin, HIGH);
 }
 
-// TESTING
-void do_heat(){
+// TEST
+// Allows heater to draw from power supply
+void heat_on(){
   digitalWrite(heater_pin, HIGH);
 }
 
-// TESTING
-void do_fan_and_heat(){
-  do_fan();
-  do_heat();
+// TEST
+// Turns off the fan.
+void fan_off(){
+  digitalWrite(fan_pin, LOW);
+}
+
+// TEST
+// Turns off the heater.
+void heat_off(){
+  digitalWrite(heater_pin, LOW);
+}
+
+// TEST
+// Allows fan and hearter to draw from power supply
+void do_fan_and_heat(int drying_time_ms){
+  fan_on();
+  heat_on();
+  delay(drying_time_ms);
+  head_off();
+  fan_off();
 }
 
 // TODO
