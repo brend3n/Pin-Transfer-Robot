@@ -67,6 +67,10 @@ class LinearActuator{
 
 #define DELAY            500 // Half a second
 
+#define plate_height_in_steps 1024
+
+#define steps_per_mm 1024
+
 
 // 0 -> Middle
 // 1 -> Right/Upper
@@ -242,6 +246,12 @@ bool find_bound(AccelStepper *motor, short dir, long *bound){
   }
 
   return true;
+}
+
+// Converts a distance in mm to steps
+long convert_mm_to_steps(float mm){
+  long steps = mm * steps_per_mm;
+  return steps;
 }
 
 // Computes the direction the motor is moving in
@@ -609,7 +619,7 @@ void close_gripper(){
 // TODO
 // Yousef
 // Take plate from a stack
-void pull_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
+void take_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
 
 }
 
@@ -640,29 +650,48 @@ void do_fan_and_heat(){
   do_heat();
 }
 
+// TODO
+// Perform a single pin transfer and bring the pin back to its starting position.
+void do_pin_transfer(){
 
-// TEST
-void do_cycle(int num_wash_steps, int pin_depth, int drying_time){
-  // Beginning Stage
-  while(true){
-
-    // LOGIC
-    // ...
-
-
-    
-
-    // Update the last position and last direction
-    update_motor_states();
-  }
-  // etc ...
-  // Final Stage
 }
 
+// TODO
+// Wash the pin tool.
+void wash_pin_tool(){
+
+}
+
+// TODO
+// Uses the fan and heater to dry the pin tool. 
+void dry_pin_tool(){
+
+}
+
+// TODO
 // TEST
-void run_all_cycles(short num_cycles, short num_wash_steps, int pin_depth, int drying_time){
+void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
+
+  take_from_stack();
+  // do_pin_transfer();
+  // wash_pin_tool();
+  // dry_pin_tool();
+  push_onto_stack();
+  
+}
+
+// TODO
+// TEST
+void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int drying_time){
+  double height_of_stack = num_plates*plate_height_in_mm;
+  double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
+
   for(int i = 0; i < num_cycles; i++){
-    do_cycle(num_wash_steps, pin_depth, drying_time);
+    
+    do_cycle(num_wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
+
+    // Update where the next plate is located at.
+    height_of_next_plate_to_grab -= plate_height_in_steps;
   }
 }
 
