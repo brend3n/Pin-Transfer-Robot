@@ -617,7 +617,6 @@ void close_gripper(){
 }
 
 // TODO
-// Yousef
 // Take plate from a stack
 void take_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
 
@@ -667,7 +666,6 @@ void wash_pin_tool(){
 void dry_pin_tool(){
 
 }
-
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
@@ -763,7 +761,7 @@ void setup() {
   add_all_steppers_to_manager();
 
   // Determine the bounds of each actuator
-  // calibrate_motors();
+  calibrate_motors();
 
 }
 
