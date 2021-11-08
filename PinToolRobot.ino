@@ -11,13 +11,11 @@
 // There is no urge to incorporate OOP but could be cleaner in grouping stuff together
 // Might work on this later, while waiting for parts for robot but done with calibration and such
 // Changing to this might result in full refactor of code though.
-
 /*
 class LinearActuator{
 
   public: 
     int curr_dir;
-    int curr_pos;
     int last_pos;
     int last_dir;
 
@@ -29,7 +27,11 @@ class LinearActuator{
     int lower_bound;
     int upper_bound;
     
-    LinearActuator(){
+    LinearActuator(int m_speed, int m_acceleration){
+      max_speed = m_speed;
+      acceleration = m_acceleration;
+
+      motor = AccelStepper(interface, step);
     }
 }
 */
@@ -96,7 +98,7 @@ class LinearActuator{
 // Pins for fan and heater N-Channel MOSFET gate pin
 #define fan_pin         -1
 #define heater_pin      -1
-// #define fan_heater_pin -1
+#define fan_heater_pin -1
 
 
 /*###########################################################################################*/
