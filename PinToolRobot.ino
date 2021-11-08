@@ -150,20 +150,20 @@ short last_dirz;
 
 
 // Bounds of each linear actuator
-long x1_right = int(1e6);
-long x1_left  = int(1e6);
+long x1_right = -1;
+long x1_left  = -1;
 
-long x2_left  = int(1e6);
-long x2_right = int(1e6);
+long x2_left  = -1;
+long x2_right = -1;
 
-long x3_left  = int(1e6);
-long x3_right = int(1e6);
+long x3_left  = -1;
+long x3_right = -1;
 
-long y_left   = int(1e6);
-long y_right  = int(1e6);
+long y_left   = -1;
+long y_right  = -1;
 
-long z_lower  = int(1e6);
-long z_upper  = int(1e6);
+long z_lower  = -1;
+long z_upper  = -1;
 
 /*###########################################################################################*/
 
@@ -229,7 +229,7 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
 }
 
 // TEST 
-bool find_bound(AccelStepper *motor, short dir, long *bound){
+void find_bound(AccelStepper *motor, short dir, long *bound){
 
   motor->moveTo(dir*MAX_RUN_DISTANCE);
   motor->runSpeedToPosition();
@@ -239,10 +239,8 @@ bool find_bound(AccelStepper *motor, short dir, long *bound){
   // This can be used to see if the motor hit the limit switch
   if (!motor->isRunning()){
     *bound = motor->currentPosition();
-    return false;
+    return;
   }
-
-  return true;
 }
 
 // Converts a distance in mm to steps
@@ -761,7 +759,7 @@ void get_user_input(int screen_num){
 
 void x1_ISR(){
   motor_x1.stop();
-  if (x1_left == int(1e6)){
+  if (x1_left == -1){
     x1_left = motor_x1.currentPosition();
   }else{
     x1_right = motor_x1.currentPosition();
@@ -770,7 +768,7 @@ void x1_ISR(){
 
 void x2_ISR(){
  motor_x2.stop();
- if (x2_left == int(1e6)){
+ if (x2_left == -1){
     x2_left = motor_x2.currentPosition();
   }else{
     x2_right = motor_x2.currentPosition();
@@ -779,7 +777,7 @@ void x2_ISR(){
 
 void x3_ISR(){
   motor_x3.stop();
-  if (x3_left == int(1e6)){
+  if (x3_left == -1){
     x3_left = motor_x3.currentPosition();
   }else{
     x3_right = motor_x3.currentPosition();
@@ -788,7 +786,7 @@ void x3_ISR(){
 
 void y_ISR(){
   motor_y.stop();
-  if (y_left == int(1e6)){
+  if (y_left == -1){
     y_left = motor_y.currentPosition();
   }else{
     y_right = motor_y.currentPosition();
@@ -797,7 +795,7 @@ void y_ISR(){
 
 void z_ISR(){
   motor_z.stop();
-  if (z_lower == int(1e6)){
+  if (z_lower == -1){
     z_lower = motor_z.currentPosition();
   }else{
     z_upper = motor_z.currentPosition();
