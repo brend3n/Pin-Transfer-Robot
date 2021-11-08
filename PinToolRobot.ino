@@ -841,6 +841,6 @@ void setup() {
 }
 
 void loop() {
-  // get_user_input();
-  // run_all_cycles();
+  get_user_input();
+  run_all_cycles();
 }
