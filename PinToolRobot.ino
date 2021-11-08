@@ -604,6 +604,9 @@ void calibrate_motors(){
   // go_to_reference();
 }
 
+
+/*###########################################################################################*/
+/*Servo Functions*/
 // TODO
 // Yousef
 // Open gripper arms enough to grab one plate
@@ -618,6 +621,8 @@ void close_gripper(){
 
 }
 
+/*###########################################################################################*/
+/*Robot Functions*/
 // TODO
 // Take plate from a stack
 void take_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
@@ -691,16 +696,15 @@ void dry_pin_tool(){
   do_fan_and_heat(heat_and_fan_delay);
   // 2. Move pin tool back to do pin transfer
 }
+
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
-
   take_from_stack();
   do_pin_transfer();
   wash_pin_tool();
   dry_pin_tool();
   push_onto_stack();
-
 }
 
 // TODO
@@ -719,6 +723,9 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
   }
 }
 
+/*###########################################################################################*/
+/*LCD Functions*/
+
 
 // TODO
 // DOMINIC
@@ -729,13 +736,27 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
     3 -> input_2
 */
 void display_screen(int screen_num){
+  if(screen_num == 0){
 
+  }else if(screen_num == 1){
+
+  }else if(screen_num == 2){
+    
+  }else if(screen_num == 3){
+    
+  }else{
+
+  }
 }
 
 // TODO
 // DOMINIC
 // Get user input from the LCD
 void get_user_input(int screen_num){
+
+  // 1. Display screen for user input
+  // 2. Cycle through screens for input and get all the necessary user input
+  // 3. Store the user input as global variables
 
 }
 
@@ -789,14 +810,26 @@ void z_ISR(){
 }
 /*###########################################################################################*/
 
+
+void test(){
+  take_from_stack();
+  do_pin_transfer();
+  wash_pin_tool();
+  dry_pin_tool();
+  push_onto_stack();
+}
+
 void setup() {
 
-  
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
   // Set the state of any pins used as inputs
   set_pins();
+
+  // Display startup screen
+  // 0 -> startup screen
+  display_screen(0);
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
@@ -810,10 +843,11 @@ void setup() {
   // Determine the bounds of each actuator
   calibrate_motors();
 
+  // Calls whatever things we are testing in the test() function call
+  test();
 }
 
 void loop() {
-
-  get_user_input();
-  run_all_cycles();
+  // get_user_input();
+  // run_all_cycles();
 }
