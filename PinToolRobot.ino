@@ -228,23 +228,16 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   return true;
 }
 
-// ! TEST this further
 // TEST 
 bool find_bound(AccelStepper *motor, short dir, long *bound){
 
   motor->moveTo(dir*MAX_RUN_DISTANCE);
   motor->runSpeedToPosition();
 
-  if ((
-      digitalRead(x1_limit_switch) ||
-      digitalRead(x2_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
-      digitalRead(y_limit_switch)  ||
-      digitalRead(z_limit_switch)
-      ) == LOW){
-    
-    Serial.println("Bound: " + String(motor->currentPosition()));
+  // Checks if the motor stopped
+  // In the ISR, interrupt stops the motor.
+  // This can be used to see if the motor hit the limit switch
+  if (!motor->isRunning()){
     *bound = motor->currentPosition();
     return false;
   }
