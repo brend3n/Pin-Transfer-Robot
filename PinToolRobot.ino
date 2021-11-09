@@ -11,13 +11,11 @@
 // There is no urge to incorporate OOP but could be cleaner in grouping stuff together
 // Might work on this later, while waiting for parts for robot but done with calibration and such
 // Changing to this might result in full refactor of code though.
-
 /*
 class LinearActuator{
 
   public: 
     int curr_dir;
-    int curr_pos;
     int last_pos;
     int last_dir;
 
@@ -29,7 +27,11 @@ class LinearActuator{
     int lower_bound;
     int upper_bound;
     
-    LinearActuator(){
+    LinearActuator(int m_speed, int m_acceleration){
+      max_speed = m_speed;
+      acceleration = m_acceleration;
+
+      motor = AccelStepper(interface, step);
     }
 }
 */
@@ -96,7 +98,7 @@ class LinearActuator{
 // Pins for fan and heater N-Channel MOSFET gate pin
 #define fan_pin         -1
 #define heater_pin      -1
-// #define fan_heater_pin -1
+#define fan_heater_pin -1
 
 
 /*###########################################################################################*/
@@ -148,20 +150,20 @@ short last_dirz;
 
 
 // Bounds of each linear actuator
-long x1_right = int(1e6);
-long x1_left  = int(1e6);
+long x1_right = -1;
+long x1_left  = -1;
 
-long x2_left  = int(1e6);
-long x2_right = int(1e6);
+long x2_left  = -1;
+long x2_right = -1;
 
-long x3_left  = int(1e6);
-long x3_right = int(1e6);
+long x3_left  = -1;
+long x3_right = -1;
 
-long y_left   = int(1e6);
-long y_right  = int(1e6);
+long y_left   = -1;
+long y_right  = -1;
 
-long z_lower  = int(1e6);
-long z_upper  = int(1e6);
+long z_lower  = -1;
+long z_upper  = -1;
 
 /*###########################################################################################*/
 
@@ -226,28 +228,19 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   return true;
 }
 
-// ! TEST this further
 // TEST 
-bool find_bound(AccelStepper *motor, short dir, long *bound){
+void find_bound(AccelStepper *motor, short dir, long *bound){
 
   motor->moveTo(dir*MAX_RUN_DISTANCE);
   motor->runSpeedToPosition();
 
-  if ((
-      digitalRead(x1_limit_switch) ||
-      digitalRead(x2_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
-      digitalRead(y_limit_switch)  ||
-      digitalRead(z_limit_switch)
-      ) == LOW){
-    
-    Serial.println("Bound: " + String(motor->currentPosition()));
+  // Checks if the motor stopped
+  // In the ISR, interrupt stops the motor.
+  // This can be used to see if the motor hit the limit switch
+  if (!motor->isRunning()){
     *bound = motor->currentPosition();
-    return false;
+    return;
   }
-
-  return true;
 }
 
 // Converts a distance in mm to steps
@@ -595,6 +588,9 @@ void calibrate_motors(){
   // go_to_reference();
 }
 
+
+/*###########################################################################################*/
+/*Servo Functions*/
 // TODO
 // Yousef
 // Open gripper arms enough to grab one plate
@@ -609,6 +605,8 @@ void close_gripper(){
 
 }
 
+/*###########################################################################################*/
+/*Robot Functions*/
 // TODO
 // Take plate from a stack
 void take_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
@@ -686,13 +684,11 @@ void dry_pin_tool(){
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
-
   take_from_stack();
   do_pin_transfer();
   wash_pin_tool();
   dry_pin_tool();
   push_onto_stack();
-
 }
 
 // TODO
@@ -710,6 +706,9 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
     height_of_next_plate_to_grab -= plate_height_in_steps;
   }
 }
+
+/*###########################################################################################*/
+/*LCD Functions*/
 
 
 /*###########################################################################################*/
@@ -730,13 +729,27 @@ void configure_LCD(){
     3 -> input_2
 */
 void display_screen(int screen_num){
+  if(screen_num == 0){
 
+  }else if(screen_num == 1){
+
+  }else if(screen_num == 2){
+    
+  }else if(screen_num == 3){
+    
+  }else{
+
+  }
 }
 
 // TODO
 // DOMINIC
 // Get user input from the LCD
 void get_user_input(int screen_num){
+
+  // 1. Display screen for user input
+  // 2. Cycle through screens for input and get all the necessary user input
+  // 3. Store the user input as global variables
 
 }
 
@@ -746,7 +759,7 @@ void get_user_input(int screen_num){
 
 void x1_ISR(){
   motor_x1.stop();
-  if (x1_left == int(1e6)){
+  if (x1_left == -1){
     x1_left = motor_x1.currentPosition();
   }else{
     x1_right = motor_x1.currentPosition();
@@ -755,7 +768,7 @@ void x1_ISR(){
 
 void x2_ISR(){
  motor_x2.stop();
- if (x2_left == int(1e6)){
+ if (x2_left == -1){
     x2_left = motor_x2.currentPosition();
   }else{
     x2_right = motor_x2.currentPosition();
@@ -764,7 +777,7 @@ void x2_ISR(){
 
 void x3_ISR(){
   motor_x3.stop();
-  if (x3_left == int(1e6)){
+  if (x3_left == -1){
     x3_left = motor_x3.currentPosition();
   }else{
     x3_right = motor_x3.currentPosition();
@@ -773,7 +786,7 @@ void x3_ISR(){
 
 void y_ISR(){
   motor_y.stop();
-  if (y_left == int(1e6)){
+  if (y_left == -1){
     y_left = motor_y.currentPosition();
   }else{
     y_right = motor_y.currentPosition();
@@ -782,7 +795,7 @@ void y_ISR(){
 
 void z_ISR(){
   motor_z.stop();
-  if (z_lower == int(1e6)){
+  if (z_lower == -1){
     z_lower = motor_z.currentPosition();
   }else{
     z_upper = motor_z.currentPosition();
@@ -790,14 +803,26 @@ void z_ISR(){
 }
 /*###########################################################################################*/
 
+
+void test(){
+  take_from_stack();
+  do_pin_transfer();
+  wash_pin_tool();
+  dry_pin_tool();
+  push_onto_stack();
+}
+
 void setup() {
 
-  
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
   // Set the state of any pins used as inputs
   set_pins();
+
+  // Display startup screen
+  // 0 -> startup screen
+  display_screen(0);
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
@@ -811,10 +836,11 @@ void setup() {
   // Determine the bounds of each actuator
   calibrate_motors();
 
+  // Calls whatever things we are testing in the test() function call
+  test();
 }
 
 void loop() {
-
   get_user_input();
   run_all_cycles();
 }
