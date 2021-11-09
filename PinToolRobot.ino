@@ -36,6 +36,19 @@ class LinearActuator{
 }
 */
 
+/*
+  PENIS
+  PENUS
+  PENYUS
+  PENYASSS
+  PEN15
+  PEN(16-1)
+  PEN1s
+  PENOS
+  SINEP
+
+*/
+
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
 
@@ -93,6 +106,16 @@ class LinearActuator{
 #define x3_limit_switch  3
 #define y_limit_switch  -1
 #define z_limit_switch  -1
+
+// Hall effect sensors as interrupt limit switches
+int gantry_limit_L = 0;
+int gantry_limit_R = 0;
+
+int z_lower_s = 0;
+int z_upper_s = 0;
+
+int y_L = 0;
+int y_R = 0;
 
 // Emergency button interrupt
 #define big_red_button  -1
@@ -813,21 +836,40 @@ void test(){
   // push_onto_stack();
 }
 
-int first_flag = 0;
-int second_flag = 0;
-
-// WORKS
-void multi_interrupt_same_pin(){
-  if (first_flag == 0){
-    Serial.println("First");
-    first_flag = 1;
-  }else if(second_flag == 0){
-    Serial.println("Second.");
-    second_flag = 1;
+void motor_ISR(){
+  if (gantry_limit_L == 0){
+    Serial.println("gantry_limit_L");
+    gantry_left_bound = motor_gantry.currentPosition();
+    gantry_limit_L = 1;
+  }else if(gantry_limit_R == 0){
+    Serial.println("gantry_limit_R");
+    gantry_right_bound = motor_gantry.currentPosition();
+    gantry_limit_R = 1;
+  }else if(z_lower_s == 0){
+    z_lower_s = 1;
+    z_lower_bound = motor_z.currentPosition();
+    Serial.println("z_lower");
+  }else if(z_upper_s == 0){
+    z_upper_s = 1;
+    z_upper_bound = motor_z.currentPosition();
+    Serial.println("z_upper");
+  }else if(y_L == 0){
+    y_L = 1;
+    y_left_bound = motor_y.currentPosition();
+    Serial.println("y_L");
+  }else if(y_R == 0){
+    y_R = 1;
+    y_right_bound = motor_y.currentPosition();
+    Serial.println("y_R");
   }else{
-    first_flag = 0;
-    second_flag = 0;
-    Serial.println("Both done");
+    gantry_limit_L = 0;
+    gantry_limit_R = 0;
+
+    z_lower_s = 0;
+    z_upper_s = 0;
+
+    y_L = 0;
+    y_R = 0;
   }
 }
 
@@ -858,8 +900,7 @@ void setup() {
   // // Calls whatever things we are testing in the test() function call
   // test();
 
-  attachInterrupt(digitalPinToInterrupt(2), multi_interrupt_same_pin, RISING);
-  
+  attachInterrupt(digitalPinToInterrupt(2), motor_ISR, RISING);
 }
 
 void loop() {
