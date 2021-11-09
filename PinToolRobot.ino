@@ -330,15 +330,6 @@ void configure_motors(){
   motor_z.setAcceleration(MAX_ACCELERATION);
 }
 
-// Initialize the LCD.
-void configure_LCD(){
-//  tft.reset();
-//  uint16_t identifier = tft.readID();
-//  tft.begin(identifier);
-//  tft.setTextColor(WHITE);
-//  tft.setTextSize(2);
-}
-
 // WORKING
 // Add all motors to MultiStepper object
 void add_all_steppers_to_manager(){
@@ -691,6 +682,7 @@ void dry_pin_tool(){
   do_fan_and_heat(heat_and_fan_delay);
   // 2. Move pin tool back to do pin transfer
 }
+
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
@@ -719,6 +711,15 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
   }
 }
 
+
+/*###########################################################################################*/
+/*LCD functions*/
+// TODO
+// DOMINIC
+// Initialize the LCD.
+void configure_LCD(){
+
+}
 
 // TODO
 // DOMINIC
@@ -802,7 +803,7 @@ void setup() {
   configure_motors();
 
   // Initialize LCD
-  // configure_LCD();
+  configure_LCD();
   
   // Add stepper motor objects to MultiStepper object
   add_all_steppers_to_manager();
