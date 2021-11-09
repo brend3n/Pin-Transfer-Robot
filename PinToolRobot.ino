@@ -36,18 +36,16 @@ class LinearActuator{
 }
 */
 
-/*
-  PENIS
-  PENUS
-  PENYUS
-  PENYASSS
-  PEN15
-  PEN(16-1)
-  PEN1s
-  PENOS
-  SINEP
 
+/*  
+  A Phallic Haiku
+
+  PENIS PENIS PE
+  PENUS PENSUS PENYASSS BITCH 
+  PENUS SNIP SNIP SNIP
 */
+
+
 
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
@@ -73,22 +71,22 @@ class LinearActuator{
 
 /*CONTSTANTS*/
 // Number of steps in a single step of the motor
-#define NUM_STEP 100
+#define NUM_STEP   100
 
 // Speed of all the motors
-#define MAX_SPEED        500
-#define MAX_ACCELERATION 1000
-#define MAX_RUN_DISTANCE 100
+#define MAX_SPEED             500
+#define MAX_ACCELERATION      1000
+#define MAX_RUN_DISTANCE      100
 
-#define DELAY            500 // Half a second
+#define DELAY                 500 // Half a second
 
 #define plate_height_in_steps 1024
 
-#define plate_height_in_mm 1024
+#define plate_height_in_mm    1024
 
-#define steps_per_mm 1024
+#define steps_per_mm          1024
 
-#define heat_and_fan_delay 5000
+#define heat_and_fan_delay    5000
 
 
 // 0 -> Middle
@@ -107,6 +105,10 @@ class LinearActuator{
 #define y_limit_switch  -1
 #define z_limit_switch  -1
 
+
+#define motor_interrupt_pin -1
+
+// Gantry kind of
 // Hall effect sensors as interrupt limit switches
 int gantry_limit_L = 0;
 int gantry_limit_R = 0;
@@ -147,9 +149,7 @@ int y_R = 0;
 //Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 //TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
-
 /*###########################################################################################*/
-
 // Position Variables
 
 // ! Can be optimized further to save space
@@ -164,6 +164,12 @@ short last_dirx2;
 short curr_dirx3;
 int   last_posx3;
 short last_dirx3;
+
+// Gantry
+// Used for the gantry (2 x-axis linear actuators together)
+short curr_dir_gantry;
+int   last_pos_gantry;
+short last_dir_gantry;
 
 short curr_diry;
 int   last_posy;
@@ -253,6 +259,7 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   return true;
 }
 
+// ! CHANGE THIS TO IMPLEMENT NEW INTERRUPT THING
 // TEST 
 void find_bound(AccelStepper *motor, short dir, long *bound){
 
@@ -316,6 +323,9 @@ void set_pins(){
     attachInterrupt(digitalPinToInterrupt(x3_limit_switch), x3_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(y_limit_switch), y_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(z_limit_switch), z_ISR, RISING);
+
+    // Gantry
+    attachInterrupt(digitalPinToInterrupt(motor_interrupt_pin), motor_ISR, RISING);
   }else{
     // Polling inputs
     pinMode(x1_limit_switch, INPUT_PULLUP);
