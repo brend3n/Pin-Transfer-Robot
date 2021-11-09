@@ -71,6 +71,8 @@ class LinearActuator{
 
 #define plate_height_in_steps 1024
 
+#define plate_height_in_mm 1024
+
 #define steps_per_mm 1024
 
 #define heat_and_fan_delay 5000
@@ -96,8 +98,8 @@ class LinearActuator{
 #define big_red_button  -1
 
 // Pins for fan and heater N-Channel MOSFET gate pin
-#define fan_pin         -1
-#define heater_pin      -1
+#define fan_pin         4
+#define heater_pin      4
 #define fan_heater_pin -1
 
 
@@ -624,39 +626,39 @@ void do_wash(){
 
 }
 
-// TEST
+// WORKS
 // Allows fan to draw from power supply
 void fan_on(){
-
   digitalWrite(fan_pin, HIGH);
 }
 
-// TEST
+// WORKS
 // Allows heater to draw from power supply
 void heat_on(){
   digitalWrite(heater_pin, HIGH);
 }
 
-// TEST
+// WORKS
 // Turns off the fan.
 void fan_off(){
   digitalWrite(fan_pin, LOW);
 }
 
-// TEST
+// WORKS
 // Turns off the heater.
 void heat_off(){
   digitalWrite(heater_pin, LOW);
 }
 
-// TEST
+// WORKS
 // Allows fan and hearter to draw from power supply
 void do_fan_and_heat(int drying_time_ms){
   fan_on();
   heat_on();
   delay(drying_time_ms);
-  head_off();
+  heat_off();
   fan_off();
+  delay(drying_time_ms);
 }
 
 // TODO
@@ -684,11 +686,11 @@ void dry_pin_tool(){
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
-  take_from_stack();
-  do_pin_transfer();
-  wash_pin_tool();
-  dry_pin_tool();
-  push_onto_stack();
+  // take_from_stack();
+  // do_pin_transfer();
+  // wash_pin_tool();
+  // dry_pin_tool();
+  // push_onto_stack();
 }
 
 // TODO
@@ -698,7 +700,7 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
   double height_of_stack = (num_plates * plate_height_in_mm);
   double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
 
-  for(int i = 0; i < num_cycles; i++){
+  for(int i = 0; i < num_plates; i++){
     
     do_cycle(num_wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
 
@@ -803,44 +805,64 @@ void z_ISR(){
 }
 /*###########################################################################################*/
 
-
 void test(){
-  take_from_stack();
-  do_pin_transfer();
-  wash_pin_tool();
-  dry_pin_tool();
-  push_onto_stack();
+  // take_from_stack();
+  // do_pin_transfer();
+  // wash_pin_tool();
+  // dry_pin_tool();
+  // push_onto_stack();
+}
+
+int first_flag = 0;
+int second_flag = 0;
+
+// WORKS
+void multi_interrupt_same_pin(){
+  if (first_flag == 0){
+    Serial.println("First");
+    first_flag = 1;
+  }else if(second_flag == 0){
+    Serial.println("Second.");
+    second_flag = 1;
+  }else{
+    first_flag = 0;
+    second_flag = 0;
+    Serial.println("Both done");
+  }
 }
 
 void setup() {
 
-  // TESTING: Begin serial connection for debugging
+  // // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
-  // Set the state of any pins used as inputs
-  set_pins();
+  // // Set the state of any pins used as inputs
+  // set_pins();
 
-  // Display startup screen
-  // 0 -> startup screen
-  display_screen(0);
+  // // Display startup screen
+  // // 0 -> startup screen
+  // display_screen(0);
 
-  // Set the max speed and acceleration values for each motor
-  configure_motors();
+  // // Set the max speed and acceleration values for each motor
+  // configure_motors();
 
-  // Initialize LCD
-  configure_LCD();
+  // // Initialize LCD
+  // configure_LCD();
   
-  // Add stepper motor objects to MultiStepper object
-  add_all_steppers_to_manager();
+  // // Add stepper motor objects to MultiStepper object
+  // add_all_steppers_to_manager();
 
-  // Determine the bounds of each actuator
-  calibrate_motors();
+  // // Determine the bounds of each actuator
+  // calibrate_motors();
 
-  // Calls whatever things we are testing in the test() function call
-  test();
+  // // Calls whatever things we are testing in the test() function call
+  // test();
+
+  attachInterrupt(digitalPinToInterrupt(2), multi_interrupt_same_pin, RISING);
+  
 }
 
 void loop() {
-  get_user_input();
-  run_all_cycles();
+  // get_user_input();
+  // run_all_cycles();
 }
