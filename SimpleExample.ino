@@ -143,8 +143,8 @@ void control_motor(){
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
-            *current_motor.moveTo(-10);
-            *current_motor.runSpeedToPosition();
+            (*current_motor).move(-10);
+            (*current_motor).runSpeedToPosition();
         }
     }else if(mapX > 0 || mapY > 0){
         Serial.println("RIGHT or UP");
@@ -155,8 +155,8 @@ void control_motor(){
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
-            *current_motor.moveTo(10);
-            *current_motor.runSpeedToPosition();
+            (*current_motor).move(10);
+            (*current_motor).runSpeedToPosition();
 
         }
     }
