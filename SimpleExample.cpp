@@ -27,6 +27,8 @@
 #define y_dir A1
 #define switch_s 13
 
+int button_state;
+
 int state = 1;
 int prev_state = 0;
 
@@ -112,6 +114,7 @@ void setup(){
 void control_motor(){
     x_pos = analogRead(x_dir);
     y_pos = analogRead(y_dir);
+    button_state = digitalRead(switch_s);
 
     mapX = map(x_pos, 0,1024,-512,512);
     mapY = map(y_pos, 0,1024,-512,512);
@@ -158,7 +161,7 @@ void control_motor(){
         }
     }
 
-    if(digitalRead(switch_s) == HIGH){
+    if( button_state == HIGH){
         if (state == 3){
             prev_state = 3;
             state = 1;
