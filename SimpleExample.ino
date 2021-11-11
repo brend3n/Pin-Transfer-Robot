@@ -90,6 +90,25 @@ void test_run_group(){
     gantry.runSpeedToPosition();
     delay(1010);
 }
+
+void gripper(int a, Servo x)
+{
+  int currentPos =  x.read();
+  if (currentPos > a)
+  {
+    for (int angle = currentPos; angle >= a; angle--) {
+      x.write(angle);
+      delay(15);
+    }
+  }
+  else if (currentPos < a)
+  {
+    for (int angle = currentPos; angle <= a; angle++) {
+      x.write(angle);
+      delay(15);
+    }
+  }
+
 void setup(){
 
     Serial.begin(9600);
