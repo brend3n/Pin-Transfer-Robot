@@ -36,6 +36,17 @@ class LinearActuator{
 }
 */
 
+
+/*  
+  A Phallic Haiku
+
+  PENIS PENIS PE
+  PENUS PENSUS PENYASSS BITCH 
+  PENUS SNIP SNIP SNIP
+*/
+
+
+
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
 
@@ -60,20 +71,22 @@ class LinearActuator{
 
 /*CONTSTANTS*/
 // Number of steps in a single step of the motor
-#define NUM_STEP 100
+#define NUM_STEP   100
 
 // Speed of all the motors
-#define MAX_SPEED        500
-#define MAX_ACCELERATION 1000
-#define MAX_RUN_DISTANCE 100
+#define MAX_SPEED             500
+#define MAX_ACCELERATION      1000
+#define MAX_RUN_DISTANCE      100
 
-#define DELAY            500 // Half a second
+#define DELAY                 500 // Half a second
 
 #define plate_height_in_steps 1024
 
-#define steps_per_mm 1024
+#define plate_height_in_mm    1024
 
-#define heat_and_fan_delay 5000
+#define steps_per_mm          1024
+
+#define heat_and_fan_delay    5000
 
 
 // 0 -> Middle
@@ -92,12 +105,26 @@ class LinearActuator{
 #define y_limit_switch  -1
 #define z_limit_switch  -1
 
+
+#define motor_interrupt_pin -1
+
+// Gantry kind of
+// Hall effect sensors as interrupt limit switches
+int gantry_limit_L = 0;
+int gantry_limit_R = 0;
+
+int z_lower_s = 0;
+int z_upper_s = 0;
+
+int y_L = 0;
+int y_R = 0;
+
 // Emergency button interrupt
 #define big_red_button  -1
 
 // Pins for fan and heater N-Channel MOSFET gate pin
-#define fan_pin         -1
-#define heater_pin      -1
+#define fan_pin         4
+#define heater_pin      4
 #define fan_heater_pin -1
 
 
@@ -122,9 +149,7 @@ class LinearActuator{
 //Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 //TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
-
 /*###########################################################################################*/
-
 // Position Variables
 
 // ! Can be optimized further to save space
@@ -139,6 +164,12 @@ short last_dirx2;
 short curr_dirx3;
 int   last_posx3;
 short last_dirx3;
+
+// Gantry
+// Used for the gantry (2 x-axis linear actuators together)
+short curr_dir_gantry;
+int   last_pos_gantry;
+short last_dir_gantry;
 
 short curr_diry;
 int   last_posy;
@@ -228,6 +259,7 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   return true;
 }
 
+// ! CHANGE THIS TO IMPLEMENT NEW INTERRUPT THING
 // TEST 
 void find_bound(AccelStepper *motor, short dir, long *bound){
 
@@ -291,6 +323,9 @@ void set_pins(){
     attachInterrupt(digitalPinToInterrupt(x3_limit_switch), x3_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(y_limit_switch), y_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(z_limit_switch), z_ISR, RISING);
+
+    // Gantry
+    attachInterrupt(digitalPinToInterrupt(motor_interrupt_pin), motor_ISR, RISING);
   }else{
     // Polling inputs
     pinMode(x1_limit_switch, INPUT_PULLUP);
@@ -321,15 +356,6 @@ void configure_motors(){
   motor_x3.setAcceleration(MAX_ACCELERATION);
   motor_y.setAcceleration(MAX_ACCELERATION);
   motor_z.setAcceleration(MAX_ACCELERATION);
-}
-
-// Initialize the LCD.
-void configure_LCD(){
-//  tft.reset();
-//  uint16_t identifier = tft.readID();
-//  tft.begin(identifier);
-//  tft.setTextColor(WHITE);
-//  tft.setTextSize(2);
 }
 
 // WORKING
@@ -633,39 +659,39 @@ void do_wash(){
 
 }
 
-// TEST
+// WORKS
 // Allows fan to draw from power supply
 void fan_on(){
-
   digitalWrite(fan_pin, HIGH);
 }
 
-// TEST
+// WORKS
 // Allows heater to draw from power supply
 void heat_on(){
   digitalWrite(heater_pin, HIGH);
 }
 
-// TEST
+// WORKS
 // Turns off the fan.
 void fan_off(){
   digitalWrite(fan_pin, LOW);
 }
 
-// TEST
+// WORKS
 // Turns off the heater.
 void heat_off(){
   digitalWrite(heater_pin, LOW);
 }
 
-// TEST
+// WORKS
 // Allows fan and hearter to draw from power supply
 void do_fan_and_heat(int drying_time_ms){
   fan_on();
   heat_on();
   delay(drying_time_ms);
-  head_off();
+  heat_off();
   fan_off();
+  delay(drying_time_ms);
 }
 
 // TODO
@@ -693,11 +719,11 @@ void dry_pin_tool(){
 // TODO
 // TEST
 void do_cycle(int num_wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
-  take_from_stack();
-  do_pin_transfer();
-  wash_pin_tool();
-  dry_pin_tool();
-  push_onto_stack();
+  // take_from_stack();
+  // do_pin_transfer();
+  // wash_pin_tool();
+  // dry_pin_tool();
+  // push_onto_stack();
 }
 
 // TODO
@@ -707,7 +733,7 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
   double height_of_stack = (num_plates * plate_height_in_mm);
   double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
 
-  for(int i = 0; i < num_cycles; i++){
+  for(int i = 0; i < num_plates; i++){
     
     do_cycle(num_wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
 
@@ -719,6 +745,15 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
 /*###########################################################################################*/
 /*LCD Functions*/
 
+
+/*###########################################################################################*/
+/*LCD functions*/
+// TODO
+// DOMINIC
+// Initialize the LCD.
+void configure_LCD(){
+
+}
 
 // TODO
 // DOMINIC
@@ -803,37 +838,76 @@ void z_ISR(){
 }
 /*###########################################################################################*/
 
-
 void test(){
-  take_from_stack();
-  do_pin_transfer();
-  wash_pin_tool();
-  dry_pin_tool();
-  push_onto_stack();
+  // take_from_stack();
+  // do_pin_transfer();
+  // wash_pin_tool();
+  // dry_pin_tool();
+  // push_onto_stack();
+}
+
+void motor_ISR(){
+  if (gantry_limit_L == 0){
+    Serial.println("gantry_limit_L");
+    gantry_left_bound = motor_gantry.currentPosition();
+    gantry_limit_L = 1;
+  }else if(gantry_limit_R == 0){
+    Serial.println("gantry_limit_R");
+    gantry_right_bound = motor_gantry.currentPosition();
+    gantry_limit_R = 1;
+  }else if(z_lower_s == 0){
+    z_lower_s = 1;
+    z_lower_bound = motor_z.currentPosition();
+    Serial.println("z_lower");
+  }else if(z_upper_s == 0){
+    z_upper_s = 1;
+    z_upper_bound = motor_z.currentPosition();
+    Serial.println("z_upper");
+  }else if(y_L == 0){
+    y_L = 1;
+    y_left_bound = motor_y.currentPosition();
+    Serial.println("y_L");
+  }else if(y_R == 0){
+    y_R = 1;
+    y_right_bound = motor_y.currentPosition();
+    Serial.println("y_R");
+  }else{
+    gantry_limit_L = 0;
+    gantry_limit_R = 0;
+
+    z_lower_s = 0;
+    z_upper_s = 0;
+
+    y_L = 0;
+    y_R = 0;
+  }
 }
 
 void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
-  // Set the state of any pins used as inputs
-  set_pins();
+  // // Set the state of any pins used as inputs
+  // set_pins();
 
-  // Display startup screen
-  // 0 -> startup screen
-  display_screen(0);
+  // // Display startup screen
+  // // 0 -> startup screen
+  // display_screen(0);
 
-  // Set the max speed and acceleration values for each motor
-  configure_motors();
+  // // Set the max speed and acceleration values for each motor
+  // configure_motors();
 
-  // Initialize LCD
+  // // Initialize LCD
   // configure_LCD();
   
-  // Add stepper motor objects to MultiStepper object
-  add_all_steppers_to_manager();
+  // // Add stepper motor objects to MultiStepper object
+  // add_all_steppers_to_manager();
 
-  // Determine the bounds of each actuator
-  calibrate_motors();
+  // // Determine the bounds of each actuator
+  // calibrate_motors();
+
+  // // Calls whatever things we are testing in the test() function call
+  // test();
 
 }
 
@@ -846,6 +920,7 @@ void setup() {
  
   // Calls whatever things we are testing in the test() function call
   // test();
+  attachInterrupt(digitalPinToInterrupt(2), motor_ISR, RISING);
 }
 
 void loop() {
