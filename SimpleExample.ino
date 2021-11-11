@@ -18,6 +18,9 @@
 #define dirPiny  -1
 #define stepPiny -1
 
+#define CLOSE 0
+#define OPEN  180
+
 // if one stepper for gantry
 // #define dirPinGantry -1
 // #define stepPinGantry -1
@@ -26,16 +29,23 @@
 #define x_dir A0
 #define y_dir A1
 #define switch_s 13
+#define buttonPin 
 
+// Switch variables
 int state = 1;
 int prev_state = 0;
+int switch_state;
+
+// Button variables
+int button_state;
+int button_count = 0;
+
 
 int x_pos;
 int y_pos;
 int mapX;
 int mapY;
 
-int button_state;
 long pos[2];
 
 bool gantryIsSet = false;
@@ -116,6 +126,7 @@ void setup(){
     pinMode(x_dir, INPUT);
     pinMode(y_dir, INPUT);
     pinMode(switch_s, INPUT_PULLUP);
+    pinMode(buttonPin, INPUT);
 
     // Set maxmium speeds
     motor_x1.setMaxSpeed(MAX_SPEED);
@@ -138,34 +149,49 @@ void setup(){
 void control_motor(){
     x_pos = analogRead(x_dir);
     y_pos = analogRead(y_dir);
-    button_state = digitalRead(switch_s);
+    switch_state = digitalRead(switch_s);
+    button_state = digitalRead(buttonPin);
 
     mapX = map(x_pos, 0,1024,-512,512);
     mapY = map(y_pos, 0,1024,-512,512);
 
+    // Determine current motor to operate
     if (state != prev_state){
         if(state == 1){
             Serial.println("Controlling: Gantry ");
-//            current_motor = &motor_x;
               gantryIsSet = true;
             // current_motor = &gantry;
         }else if(state == 2){
             Serial.println("Controlling: Y ");
             current_motor = &motor_y;
+            gantryIsSet =false;
         }else if(state == 3){
             Serial.println("Controlling: Z ");
             current_motor = &motor_z;
+            gantryIsSet = false;
         }else{
             gantryIsSet = false;
         }
     }
+
+
+    if (button_state == HIGH){
+        button_count++;
+    }
+
+    if((button_count % 2) == 0){
+        gripper(CLOSE, servo);
+    }else{
+        gripper(OPEN, servo);
+    }
     
+    // Move the motor based on joystick position
     if(mapX < 0 || mapY < 0){
         Serial.println("LEFT or DOWN");
         if (gantryIsSet){
             
-            pos[0] =  1;
-            pos[1] = -1;
+            pos[0] =  10;
+            pos[1] = -10;
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
@@ -175,8 +201,8 @@ void control_motor(){
     }else if(mapX > 0 || mapY > 0){
         Serial.println("RIGHT or UP");
         if (gantryIsSet){
-            pos[0] = -1;
-            pos[1] =  1;
+            pos[0] = -10;
+            pos[1] =  10;
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
@@ -185,7 +211,8 @@ void control_motor(){
         }
     }
 
-    if(button_state == HIGH){
+    // Update last state of the switch
+    if(switch_state == HIGH){
         if (state == 3){
             prev_state = 3;
             state = 1;
