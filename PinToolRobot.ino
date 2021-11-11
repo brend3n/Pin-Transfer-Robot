@@ -812,8 +812,7 @@ void test(){
   push_onto_stack();
 }
 
-void setup() {
-
+void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
@@ -836,11 +835,20 @@ void setup() {
   // Determine the bounds of each actuator
   calibrate_motors();
 
+}
+
+void setup() {
+
+  // run_startup();
+
+  // Delay for this function is set by constant
+  dry_pin_tool();
+ 
   // Calls whatever things we are testing in the test() function call
-  test();
+  // test();
 }
 
 void loop() {
-  get_user_input();
-  run_all_cycles();
+  // get_user_input();
+  // run_all_cycles();
 }
