@@ -27,8 +27,6 @@
 #define y_dir A1
 #define switch_s 13
 
-int button_state;
-
 int state = 1;
 int prev_state = 0;
 
@@ -37,7 +35,13 @@ int y_pos;
 int mapX;
 int mapY;
 
+int button_state;
+long pos[2];
+
 bool gantryIsSet = false;
+
+#define MAX_SPEED 100
+#define MAX_ACCELERATION 100
 
 // Instantiating motor driver objects
 AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
@@ -90,9 +94,9 @@ void setup(){
 
     Serial.begin(9600);
 
-  pinMode(x_dir, INPUT);
-  pinMode(y_dir, INPUT);
-  pinMode(switch_s, INPUT_PULLUP);
+    pinMode(x_dir, INPUT);
+    pinMode(y_dir, INPUT);
+    pinMode(switch_s, INPUT_PULLUP);
 
     // Set maxmium speeds
     motor_x1.setMaxSpeed(MAX_SPEED);
@@ -110,6 +114,7 @@ void setup(){
     gantry.addStepper(motor_x1);
     gantry.addStepper(motor_x2);
 
+    current_motor = &motor_y;
 }
 void control_motor(){
     x_pos = analogRead(x_dir);
@@ -122,46 +127,46 @@ void control_motor(){
     if (state != prev_state){
         if(state == 1){
             Serial.println("Controlling: Gantry ");
-            current_motor = &motor_x;
+//            current_motor = &motor_x;
+              gantryIsSet = true;
             // current_motor = &gantry;
         }else if(state == 2){
             Serial.println("Controlling: Y ");
             current_motor = &motor_y;
-        }else if{
+        }else if(state == 3){
             Serial.println("Controlling: Z ");
-            gantryIsSet = true;
+            current_motor = &motor_z;
         }else{
             gantryIsSet = false;
         }
     }
+    
     if(mapX < 0 || mapY < 0){
         Serial.println("LEFT or DOWN");
         if (gantryIsSet){
-            long pos;
+            
             pos[0] =  1;
             pos[1] = -1;
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
-            *current_motor.moveTo(-10);
-            *current_motor.runSpeedToPosition();
+            (*current_motor).move(-10);
+            (*current_motor).runSpeedToPosition();
         }
     }else if(mapX > 0 || mapY > 0){
         Serial.println("RIGHT or UP");
         if (gantryIsSet){
-            long pos;
             pos[0] = -1;
             pos[1] =  1;
             gantry.moveTo(pos);
             gantry.runSpeedToPosition();
         }else{
-            *current_motor.moveTo(10);
-            *current_motor.runSpeedToPosition();
-
+            (*current_motor).move(10);
+            (*current_motor).runSpeedToPosition();
         }
     }
 
-    if( button_state == HIGH){
+    if(button_state == HIGH){
         if (state == 3){
             prev_state = 3;
             state = 1;
