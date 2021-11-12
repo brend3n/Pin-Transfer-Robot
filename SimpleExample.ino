@@ -22,6 +22,9 @@
 #define CLOSE 50
 #define OPEN  0
 
+#define UP 500
+#define DOWN -500
+
 // if one stepper for gantry
 // #define dirPinGantry -1
 // #define stepPinGantry -1
@@ -121,8 +124,7 @@ void gripper(int a, Servo x)
     }
   }
 }
-#define UP 500
-#define DOWN -500
+
 void test(){
   motor_z.move(UP);
   motor_z.runToPosition();
@@ -160,11 +162,7 @@ void setup(){
     gantry.addStepper(motor_x1);
     gantry.addStepper(motor_x2);
 
-    servo.write(0);
-    // gripper(CLOSE, servo);
-    // current_motor = &motor_y;
-    // delay(3000);
-    // test();
+    servo.write(OPEN);
 }
 
 
@@ -180,13 +178,19 @@ void control_motor(){
     if (mapX > 400){
         Serial.println("RIGHT");
 
+        motor_x1.setSpeed(10);
+        motor_x2.setSpeed(-10);
+        while (mapX > 400){
+            motor_x1.setSpeed(motor_x1.speed()*1.01);
+            motor_x2.setSpeed(motor_x2.speed()*1.01);
+            motor_x1.runSpeed();
+            motor_x2.runSpeed();
+        }
+
         // motor_x1.move(10);
         // motor_x2.move(-10);
         // motor_x1.runSpeedToPosition();
         // motor_x2.runSpeedToPosition();
-
-    
-
     }else if (mapX < -400){
         Serial.println("LEFT");
         
@@ -194,6 +198,14 @@ void control_motor(){
         // motor_x2.move(10);
         // motor_x1.runSpeedToPosition();
         // motor_x2.runSpeedToPosition();
+        motor_x1.setSpeed(-10);
+        motor_x2.setSpeed(10);
+        while (mapX < -400){
+            motor_x1.setSpeed(motor_x1.speed()*1.01);
+            motor_x2.setSpeed(motor_x2.speed()*1.01);
+            motor_x1.runSpeed();
+            motor_x2.runSpeed();
+        }
     }else if(mapY > 400){
         Serial.println("DOWN");
         motor_z.move(DOWN);
@@ -208,6 +220,7 @@ void control_motor(){
         motor_x2.stop();
     }
 
+    // Could change this to a boolean flag
     if (switch_state == LOW){
         button_count++;
     }
@@ -217,98 +230,6 @@ void control_motor(){
     }else{
         gripper(OPEN, servo);
     }
-
-
-
-    // mapX = x_pos;
-    // mapY = y_pos;
-    
-
-    // Determine current motor to operate
-    // if (state != prev_state){
-        // if(state == 1){
-        //     Serial.println("Controlling: Gantry ");
-        //       gantryIsSet = true;
-        //     // current_motor = &gantry;
-        // }else if(state == 2){
-        //     Serial.println("Controlling: Y ");
-        //     current_motor = &motor_y;
-        //     gantryIsSet =false;
-        // }else if(state == 3){
-        //     Serial.println("Controlling: Z ");
-        //     current_motor = &motor_z;
-        //     gantryIsSet = false;
-        // }else{
-        //     gantryIsSet = false;
-        // }
-    // }
-    /*
-    // Determine current motor to operate
-    if (state != prev_state){
-        if(state == 1){
-            Serial.println("Controlling: Gantry ");
-            gantryIsSet = true;
-            // current_motor = &gantry;
-        }else if(state == 2){
-            Serial.println("Controlling: Y ");
-            current_motor = &motor_y;
-            gantryIsSet =false;
-        }else if(state == 3){
-            Serial.println("Controlling: Z ");
-            current_motor = &motor_z;
-            gantryIsSet = false;
-        }else{
-            gantryIsSet = false;
-        }
-    }
-
-    if (button_state == HIGH){
-        button_count++;
-    }
-
-    if((button_count % 2) == 0){
-        gripper(CLOSE, servo);
-    }else{
-        gripper(OPEN, servo);
-    }
-    
-    // Move the motor based on joystick position
-    if((mapX < 0 && mapY < 0) || (mapX < 0 && mapY > 0)){
-        Serial.println("LEFT or DOWN");
-        if (gantryIsSet){
-            
-            pos[0] =  10;
-            pos[1] = -10;
-            gantry.moveTo(pos);
-            gantry.runSpeedToPosition();
-        }else{
-            (*current_motor).move(-10);
-            (*current_motor).runSpeedToPosition();
-        }
-    }else if(((mapX > 0 && mapY > 0) || (mapX > 0 && mapY < 0))){
-        Serial.println("RIGHT or UP");
-        if (gantryIsSet){
-            pos[0] = -10;
-            pos[1] =  10;
-            gantry.moveTo(pos);
-            gantry.runSpeedToPosition();
-        }else{
-            (*current_motor).move(10);
-            (*current_motor).runSpeedToPosition();
-        }
-    }
-
-    // Update last state of the switch
-    if(switch_state == LOW){
-        if (state == 3){
-            prev_state = 3;
-            state = 1;
-        }else{
-            prev_state = state;
-            state++;
-        }
-    }
-    */
 }
 
 
