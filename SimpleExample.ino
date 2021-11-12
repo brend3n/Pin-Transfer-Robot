@@ -16,14 +16,16 @@
 #define dirPinz  48
 #define stepPinz 49
 
-#define dirPiny  -1
-#define stepPiny -1
+#define dirPiny  27
+#define stepPiny 26
 
 #define CLOSE 50
 #define OPEN  0
 
 #define UP 500
 #define DOWN -500
+
+#define y_switch 22
 
 // if one stepper for gantry
 // #define dirPinGantry -1
@@ -33,16 +35,18 @@
 #define x_dir A0
 #define y_dir A1
 #define switch_s 13
-#define buttonPin 12 
+#define buttonPin 53 
+
+
+#define SPEED_FACTOR 1.25
 
 // Switch variables
-bool isOpen = false;
-int prev_state = 1;
 int switch_state;
+int switch_count = 1;
 
 // Button variables
 int button_state;
-int button_count = 1;
+bool button_mode = false;
 
 
 int x_pos;
@@ -53,6 +57,7 @@ int mapY;
 long pos[2];
 
 bool gantryIsSet = false;
+
 
 #define MAX_SPEED 100
 #define MAX_ACCELERATION 100
@@ -144,6 +149,8 @@ void setup(){
     pinMode(switch_s, INPUT_PULLUP);
     pinMode(buttonPin, INPUT);
 
+    pinMode(y_switch, INPUT);
+
     servo.attach(9);
 
     // Set maxmium speeds
@@ -165,26 +172,44 @@ void setup(){
     servo.write(OPEN);
 }
 
-
-void control_motor(){
-    x_pos = analogRead(x_dir);
+void get_states(){
+    x_pos = analogRead(x_dir);  
     y_pos = analogRead(y_dir);
     switch_state = digitalRead(switch_s);
     button_state = digitalRead(buttonPin);
 
     mapX = map(x_pos, 0,1024,-512,512);
     mapY = map(y_pos, 0,1024,-512,512);
+}
+void control_motor(){
+    // x_pos = analogRead(x_dir);
+    // y_pos = analogRead(y_dir);
+    // switch_state = digitalRead(switch_s);
+    // button_state = digitalRead(buttonPin);
+
+    // mapX = map(x_pos, 0,1024,-512,512);
+    // mapY = map(y_pos, 0,1024,-512,512); 
+    get_states();
+
+    // Toggle button mode each time it is clicked
+    if (button_state == HIGH){
+      delay(200);
+      button_mode = !button_mode;
+      Serial.println("Button toggled");
+    }
     
     if (mapX > 400){
         Serial.println("RIGHT");
 
-        motor_x1.setSpeed(10);
-        motor_x2.setSpeed(-10);
+
+        motor_x1.setSpeed(4000);
+        motor_x2.setSpeed(-4000);
         while (mapX > 400){
-            motor_x1.setSpeed(motor_x1.speed()*1.01);
-            motor_x2.setSpeed(motor_x2.speed()*1.01);
+            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
+            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
             motor_x1.runSpeed();
             motor_x2.runSpeed();
+            get_states();
         }
 
         // motor_x1.move(10);
@@ -198,34 +223,85 @@ void control_motor(){
         // motor_x2.move(10);
         // motor_x1.runSpeedToPosition();
         // motor_x2.runSpeedToPosition();
-        motor_x1.setSpeed(-10);
-        motor_x2.setSpeed(10);
+        motor_x1.setSpeed(-4000);
+        motor_x2.setSpeed(4000);
         while (mapX < -400){
-            motor_x1.setSpeed(motor_x1.speed()*1.01);
-            motor_x2.setSpeed(motor_x2.speed()*1.01);
+            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
+            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
             motor_x1.runSpeed();
             motor_x2.runSpeed();
+            get_states();
         }
     }else if(mapY > 400){
-        Serial.println("DOWN");
-        motor_z.move(DOWN);
-        motor_z.runToPosition();
+
+        if (!button_mode){
+          // Z-axis
+          Serial.println("DOWN");
+          // motor_z.move(DOWN);
+          // motor_z.runToPosition();
+
+          motor_z.setSpeed(DOWN * 10);
+          while (mapY > 400){
+              // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
+              motor_z.runSpeed();
+              get_states();
+          }
+        }else{
+          //Y-axis
+          Serial.println("Y LEFT");
+          motor_y.setSpeed(-1000);
+          while (mapY > 400){
+              // motor_y.setSpeed(motor_y.speed()*SPEED_FACTOR);
+              if(digitalRead(y_switch) == LOW){
+                motor_y.stop();
+                break;
+              }
+              motor_y.runSpeed();
+              get_states();
+          }
+
+        }
+        
     }else if(mapY < -400){
-        Serial.println("UP");
-        motor_z.move(UP);
-        motor_z.runToPosition();
+        if (!button_mode){
+          // Z-axis
+          // Serial.println("UP");
+          // motor_z.move(UP);
+          // motor_z.runToPosition();
+
+          motor_z.setSpeed(UP*10);
+          while (mapY < -400){
+              // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
+              motor_z.runSpeed();
+              get_states();
+          }
+        }else{
+          //Y-axis
+          Serial.println("Y RIGHT");
+          motor_y.setSpeed(1000);
+          while (mapY < -400){
+              if(digitalRead(y_switch) == LOW){
+                  motor_y.stop();
+                  break;
+              }
+              // motor_y.setSpeed(motor_y.speed()*SPEED_FACTOR);
+              motor_y.runSpeed();
+              get_states();
+          }
+        }
     }else{
         motor_z.stop();
         motor_x1.stop();
         motor_x2.stop();
+        motor_y.stop();
     }
 
     // Could change this to a boolean flag
     if (switch_state == LOW){
-        button_count++;
+        switch_count++;
     }
 
-    if((button_count % 2) == 0){
+    if((switch_count % 2) == 0){
         gripper(CLOSE, servo);
     }else{
         gripper(OPEN, servo);
@@ -233,8 +309,20 @@ void control_motor(){
 }
 
 
+void test_speed(){
+  // motor_y.setSpeed(100);
+  // for(int i = 0;i < 100;i++){
+  //   motor_y.runSpeed();
+  // }
+  motor_y.setSpeed(-10);
+  for(int i = 0;i < 100;i++){
+    motor_y.runSpeed();
+  }
+}
+
 void loop(){
     // test_run_group();
     control_motor();
     // test();
+    // test_speed();
 }
