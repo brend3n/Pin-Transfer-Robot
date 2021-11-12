@@ -178,38 +178,34 @@ void control_motor(){
     mapY = map(y_pos, 0,1024,-512,512);
     
     if (mapX > 400){
-      Serial.println("RIGHT");
-      // pos[0] =  10;
-      // pos[1] = -10;
-      // gantry.moveTo(pos);
-      // gantry.runSpeedToPosition();
-      motor_x1.move(10);
-      motor_x2.move(-10);
-      motor_x1.runSpeedToPosition();
-      motor_x2.runSpeedToPosition();
-    }else if (mapX < -400){
-      Serial.println("LEFT");
-      // pos[0] =  -10;
-      // pos[1] =   10;
-      // gantry.moveTo(pos);
-      // gantry.runSpeedToPosition();
-      motor_x1.move(-10);
-      motor_x2.move(10);
-      motor_x1.runSpeedToPosition();
-      motor_x2.runSpeedToPosition();
-    }else if(mapY > 400){
-      Serial.println("DOWN");
-      motor_z.move(DOWN);
-      motor_z.runToPosition();
-    }else if(mapY < -400){
-      Serial.println("UP");
-      motor_z.move(UP);
-      motor_z.runToPosition();
-    }else{
-      motor_z.stop();
-      motor_x1.stop();
-      motor_x2.stop();
+        Serial.println("RIGHT");
 
+        // motor_x1.move(10);
+        // motor_x2.move(-10);
+        // motor_x1.runSpeedToPosition();
+        // motor_x2.runSpeedToPosition();
+
+    
+
+    }else if (mapX < -400){
+        Serial.println("LEFT");
+        
+        // motor_x1.move(-10);
+        // motor_x2.move(10);
+        // motor_x1.runSpeedToPosition();
+        // motor_x2.runSpeedToPosition();
+    }else if(mapY > 400){
+        Serial.println("DOWN");
+        motor_z.move(DOWN);
+        motor_z.runToPosition();
+    }else if(mapY < -400){
+        Serial.println("UP");
+        motor_z.move(UP);
+        motor_z.runToPosition();
+    }else{
+        motor_z.stop();
+        motor_x1.stop();
+        motor_x2.stop();
     }
 
     if (switch_state == LOW){
@@ -218,12 +214,8 @@ void control_motor(){
 
     if((button_count % 2) == 0){
         gripper(CLOSE, servo);
-        // Serial.println("CLOSE GRIPPER");
-        // delay(5000);
     }else{
         gripper(OPEN, servo);
-        // Serial.println("OPEN GRIPPER");
-        // delay(5000);
     }
 
 
