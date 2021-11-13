@@ -80,37 +80,6 @@ MultiStepper gantry;
 
 #define steps 100
 
-// ! Used for testing only
-// WORKS
-void test_run_group(){
-    // Set all positions for the motors to move in
-
-    // positions: {X1, X2, X3, Y, Z}
-    //             0   1   2   3  4
-
-    long positions[2];
-
-    positions[0] = steps;
-    positions[1] = (-1*steps);
-
-    // Set target positions
-    gantry.moveTo(positions);
-
-    // Run motors to target positions
-    gantry.runSpeedToPosition();
-
-    // Small delay
-    delay(1010);
-
-    // Same as before but other direction
-    positions[0] = (-1*steps);
-    positions[1] = steps;
-
-    gantry.moveTo(positions);
-    gantry.runSpeedToPosition();
-    delay(1010);
-}
-
 void gripper(int a, Servo x)
 {
   int currentPos =  x.read();
@@ -130,16 +99,6 @@ void gripper(int a, Servo x)
   }
 }
 
-void test(){
-  motor_z.move(UP);
-  motor_z.runToPosition();
-  // gripper(CLOSE, servo);
-
-  // motor_z.move(150);
-  // motor_z.runToPosition();
-  // gripper(CLOSE, servo);
-
-}
 void setup(){
 
     Serial.begin(9600);
@@ -182,13 +141,6 @@ void get_states(){
     mapY = map(y_pos, 0,1024,-512,512);
 }
 void control_motor(){
-    // x_pos = analogRead(x_dir);
-    // y_pos = analogRead(y_dir);
-    // switch_state = digitalRead(switch_s);
-    // button_state = digitalRead(buttonPin);
-
-    // mapX = map(x_pos, 0,1024,-512,512);
-    // mapY = map(y_pos, 0,1024,-512,512); 
     get_states();
 
     // Toggle button mode each time it is clicked
@@ -200,8 +152,6 @@ void control_motor(){
     
     if (mapX > 400){
         Serial.println("RIGHT");
-
-
         motor_x1.setSpeed(4000);
         motor_x2.setSpeed(-4000);
         while (mapX > 400){
@@ -211,18 +161,8 @@ void control_motor(){
             motor_x2.runSpeed();
             get_states();
         }
-
-        // motor_x1.move(10);
-        // motor_x2.move(-10);
-        // motor_x1.runSpeedToPosition();
-        // motor_x2.runSpeedToPosition();
     }else if (mapX < -400){
         Serial.println("LEFT");
-        
-        // motor_x1.move(-10);
-        // motor_x2.move(10);
-        // motor_x1.runSpeedToPosition();
-        // motor_x2.runSpeedToPosition();
         motor_x1.setSpeed(-4000);
         motor_x2.setSpeed(4000);
         while (mapX < -400){
@@ -237,9 +177,6 @@ void control_motor(){
         if (!button_mode){
           // Z-axis
           Serial.println("DOWN");
-          // motor_z.move(DOWN);
-          // motor_z.runToPosition();
-
           motor_z.setSpeed(DOWN * 10);
           while (mapY > 400){
               // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
@@ -265,10 +202,6 @@ void control_motor(){
     }else if(mapY < -400){
         if (!button_mode){
           // Z-axis
-          // Serial.println("UP");
-          // motor_z.move(UP);
-          // motor_z.runToPosition();
-
           motor_z.setSpeed(UP*10);
           while (mapY < -400){
               // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
@@ -308,21 +241,6 @@ void control_motor(){
     }
 }
 
-
-void test_speed(){
-  // motor_y.setSpeed(100);
-  // for(int i = 0;i < 100;i++){
-  //   motor_y.runSpeed();
-  // }
-  motor_y.setSpeed(-10);
-  for(int i = 0;i < 100;i++){
-    motor_y.runSpeed();
-  }
-}
-
 void loop(){
-    // test_run_group();
     control_motor();
-    // test();
-    // test_speed();
 }
