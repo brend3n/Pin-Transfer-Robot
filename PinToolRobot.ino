@@ -5,38 +5,6 @@
 // Servos
 #include <Servo.h>
 
-
-// ! NOTICE
-// Potential class implementation for a linear actuator
-// There is no urge to incorporate OOP but could be cleaner in grouping stuff together
-// Might work on this later, while waiting for parts for robot but done with calibration and such
-// Changing to this might result in full refactor of code though.
-/*
-class LinearActuator{
-
-  public: 
-    int curr_dir;
-    int last_pos;
-    int last_dir;
-
-    AccelStepper motor;
-
-    int max_speed;
-    int acceleration;
-
-    int lower_bound;
-    int upper_bound;
-    
-    LinearActuator(int m_speed, int m_acceleration){
-      max_speed = m_speed;
-      acceleration = m_acceleration;
-
-      motor = AccelStepper(interface, step);
-    }
-}
-*/
-
-
 /*  
   A Phallic Haiku
 
@@ -45,8 +13,6 @@ class LinearActuator{
   PENUS SNIP SNIP SNIP
 */
 
-
-
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
 
@@ -54,22 +20,64 @@ class LinearActuator{
 #define interface  1
 
 // Direction and Step pins for all motors
-#define dirPinx1  -1
-#define stepPinx1 -1
+/*Two separate motor drivers for each x-axis linear actuator*/
+#define dirPinx1      -1
+#define stepPinx1     -1
 
-#define dirPinx2  -1
-#define stepPinx2 -1
+#define dirPinx2      -1
+#define stepPinx2     -1
 
-#define dirPinx3  27
-#define stepPinx3 26
+/*
+  One motor driver for both x-axis linear actuators
 
-#define dirPiny   -1
-#define stepPiny  -1
+  Need to wire the motors inversely such that they step together
+*/
+#define dirPinGantry  -1
+#define stepPinGantry -1
 
-#define dirPinz   -1
-#define stepPinz  -1
+#define dirPiny       -1
+#define stepPiny      -1
 
+#define dirPinz1      -1
+#define stepPinz1     -1
+
+/* Other Z-axis linear actuator*/
+#define dirPinz2      -1
+#define stepPinz2     -1
+
+/*###########################################################################################*/
+/*Servo Pins*/
+
+#define SERVO_PIN 9
+
+// Servo constants
+#define CLOSE 50
+#define OPEN  0
+
+/*###########################################################################################*/
+/* LCD Pin Definitions*/
+
+
+
+/*###########################################################################################*/
+/*Other Pin Definitions*/
+
+// Limit switch pins definitions
+#define x1_limit_switch -1
+#define x2_limit_switch -1
+#define gantry_limit_switch -1
+#define y_limit_switch  -1
+#define z1_limit_switch  -1
+#define z2_limit_switch  -1
+
+// Pins for fan and heater N-Channel MOSFET gate pin
+#define fan_pin         4
+#define heater_pin      4
+#define fan_heater_pin -1 // If using one pin to control both MOSFETS
+
+/*###########################################################################################*/
 /*CONTSTANTS*/
+
 // Number of steps in a single step of the motor
 #define NUM_STEP   100
 
@@ -88,69 +96,11 @@ class LinearActuator{
 
 #define heat_and_fan_delay    5000
 
-
-// 0 -> Middle
-// 1 -> Right/Upper
-//-1 -> Left/Lower
-#define REFERENCE_POS 0
-
 // Change to false to do polling
 #define INTERRUPTS_ENABLED false
 
-
-// Limit switch pins definitions
-#define x1_limit_switch -1
-#define x2_limit_switch -1
-#define x3_limit_switch  3
-#define y_limit_switch  -1
-#define z_limit_switch  -1
-
-
-#define motor_interrupt_pin -1
-
-// Gantry kind of
-// Hall effect sensors as interrupt limit switches
-int gantry_limit_L = 0;
-int gantry_limit_R = 0;
-
-int z_lower_s = 0;
-int z_upper_s = 0;
-
-int y_L = 0;
-int y_R = 0;
-
-// Emergency button interrupt
-#define big_red_button  -1
-
-// Pins for fan and heater N-Channel MOSFET gate pin
-#define fan_pin         4
-#define heater_pin      4
-#define fan_heater_pin -1
-
-
 /*###########################################################################################*/
-/* LCD Pin Definitions*/
-
-//#include <Adafruit_TFTLCD.h>
-//#include <TouchScreen.h>
-
-//#define LCD_CS A3
-//#define LCD_CD A2
-//#define LCD_WR A1
-//#define LCD_RD A0
-//#define LCD_RESET A4
-//#define YP A2  
-//#define XM A3 
-//#define YM 8   
-//#define XP 9 
-//#define BLACK 0x0000
-//#define WHITE 0xFFFF
-//
-//Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
-//TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-
-/*###########################################################################################*/
-// Position Variables
+/*Position Variables*/
 
 // ! Can be optimized further to save space
 short curr_dirx1;
@@ -160,10 +110,6 @@ short last_dirx1;
 short curr_dirx2;
 int   last_posx2;
 short last_dirx2;
-
-short curr_dirx3;
-int   last_posx3;
-short last_dirx3;
 
 // Gantry
 // Used for the gantry (2 x-axis linear actuators together)
@@ -175,10 +121,13 @@ short curr_diry;
 int   last_posy;
 short last_diry;
 
-short curr_dirz;
-int   last_posz;
-short last_dirz;
+short curr_dirz1;
+int   last_posz1;
+short last_dirz1;
 
+short curr_dirz2;
+int   last_posz2;
+short last_dirz2;
 
 // Bounds of each linear actuator
 long x1_right = -1;
@@ -187,23 +136,28 @@ long x1_left  = -1;
 long x2_left  = -1;
 long x2_right = -1;
 
-long x3_left  = -1;
-long x3_right = -1;
+long gantry_left  = -1;
+long gantry_right = -1;
 
 long y_left   = -1;
 long y_right  = -1;
 
-long z_lower  = -1;
-long z_upper  = -1;
+long z1_lower  = -1;
+long z1_upper  = -1;
+
+long z2_lower  = -1;
+long z2_upper  = -1;
 
 /*###########################################################################################*/
 
 // Instantiating motor driver objects
-AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
-AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
-AccelStepper motor_x3 = AccelStepper(interface, stepPinx3, dirPinx3);
-AccelStepper motor_y  = AccelStepper(interface, stepPiny, dirPiny);
-AccelStepper motor_z  = AccelStepper(interface, stepPinz, dirPinz);
+AccelStepper motor_x1     =     AccelStepper(interface, stepPinx1, dirPinx1);
+AccelStepper motor_x2     =     AccelStepper(interface, stepPinx2, dirPinx2);
+AccelStepper motor_gantry =     AccelStepper(interface, stepPinGantry, dirPinGantry);
+AccelStepper motor_y      =     AccelStepper(interface, stepPiny, dirPiny);
+AccelStepper motor_z      =     AccelStepper(interface, stepPinz, dirPinz);
+
+Servo servo = Servo();
 
 // Instantiating class that encapsulates a list of motor driver objects
 MultiStepper stepperBabies;
@@ -246,10 +200,10 @@ boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
   if ((
       digitalRead(x1_limit_switch) ||
       digitalRead(x2_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
-      digitalRead(x3_limit_switch) ||
+      digitalRead(gantry_limit_switch) ||
       digitalRead(y_limit_switch)  ||
-      digitalRead(z_limit_switch)
+      digitalRead(z1_limit_switch) ||
+      digitalRead(z2_limit_switch)
       ) == LOW){
     
     Serial.println("Bound: " + String(motor->currentPosition()));
@@ -275,6 +229,8 @@ void find_bound(AccelStepper *motor, short dir, long *bound){
   }
 }
 
+
+// ! NEED
 // Converts a distance in mm to steps
 long convert_mm_to_steps(float mm){
   long steps = mm * steps_per_mm;
@@ -312,28 +268,28 @@ int curr_direction(int last_pos, int new_pos){
 // WORKING
 void set_pins(){
 
-  // Emergency Stop button
-  // attachInterrupt(digitalPinToInterrupt(big_red_button), emergency_shut_off, RISING);
-  // attachInterrupt(digitalPinToInterrupt(d_limit_switch), DominicsISR, CHANGE);
 
   if (INTERRUPTS_ENABLED){
     // Limit Switches
     attachInterrupt(digitalPinToInterrupt(x1_limit_switch), x1_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(x2_limit_switch), x2_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(x3_limit_switch), x3_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(gantry_limit_switch), x2_ISR, RISING);
     attachInterrupt(digitalPinToInterrupt(y_limit_switch), y_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(z_limit_switch), z_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(z1_limit_switch), z_ISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(z2_limit_switch), z_ISR, RISING);
 
-    // Gantry
-    attachInterrupt(digitalPinToInterrupt(motor_interrupt_pin), motor_ISR, RISING);
   }else{
     // Polling inputs
     pinMode(x1_limit_switch, INPUT_PULLUP);
     pinMode(x2_limit_switch, INPUT_PULLUP);
-    pinMode(x3_limit_switch, INPUT_PULLUP);
+    pinMode(gantry_limit_switch, INPUT_PULLUP);
     pinMode(y_limit_switch,  INPUT_PULLUP);
-    pinMode(z_limit_switch,  INPUT_PULLUP);
+    pinMode(z1_limit_switch,  INPUT_PULLUP);
+    pinMode(z2_limit_switch,  INPUT_PULLUP);
   }
+
+    // Set up servo
+    servo.attach(SERVO_PIN);
   
 }
 
@@ -346,16 +302,18 @@ void configure_motors(){
   // Set maxmium speeds
   motor_x1.setMaxSpeed(MAX_SPEED);
   motor_x2.setMaxSpeed(MAX_SPEED);
-  motor_x3.setMaxSpeed(MAX_SPEED);
+  motor_gantry.setMaxSpeed(MAX_SPEED);
   motor_y.setMaxSpeed(MAX_SPEED);
-  motor_z.setMaxSpeed(MAX_SPEED);
+  motor_z1.setMaxSpeed(MAX_SPEED);
+  motor_z2.setMaxSpeed(MAX_SPEED);
 
   // Set acceleration
   motor_x1.setAcceleration(MAX_ACCELERATION);
   motor_x2.setAcceleration(MAX_ACCELERATION);
-  motor_x3.setAcceleration(MAX_ACCELERATION);
+  motor_gantry.setMaxSpeed(MAX_SPEED);
   motor_y.setAcceleration(MAX_ACCELERATION);
-  motor_z.setAcceleration(MAX_ACCELERATION);
+  motor_z1.setAcceleration(MAX_ACCELERATION);
+  motor_z2.setAcceleration(MAX_ACCELERATION);
 }
 
 // WORKING
@@ -363,9 +321,10 @@ void configure_motors(){
 void add_all_steppers_to_manager(){
   stepperBabies.addStepper(motor_x1);
   stepperBabies.addStepper(motor_x2);
-  stepperBabies.addStepper(motor_x3);
+  stepperBabies.addStepper(motor_gantry);
   stepperBabies.addStepper(motor_y);
-  stepperBabies.addStepper(motor_z);
+  stepperBabies.addStepper(motor_z1);
+  stepperBabies.addStepper(motor_z2);
 }
 
 // TEST
@@ -373,9 +332,10 @@ void add_all_steppers_to_manager(){
 void update_last_directions(){
   last_dirx1 = curr_direction(last_posx1, motor_x1.currentPosition());
   last_dirx2 = curr_direction(last_posx2, motor_x2.currentPosition());
-  last_dirx3 = curr_direction(last_posx3, motor_x3.currentPosition());
+  last_dir_gantry = curr_direction(last_posx3, motor_gantry.currentPosition());
   last_diry  = curr_direction(last_posy,  motor_y.currentPosition());
-  last_dirz  = curr_direction(last_posz,  motor_z.currentPosition());
+  last_dirz1  = curr_direction(last_posz,  motor_z1.currentPosition());
+  last_dirz2  = curr_direction(last_posz,  motor_z2.currentPosition());
 }
 
 // TEST
@@ -383,9 +343,10 @@ void update_last_directions(){
 void update_last_positions(){
   last_posx1 = motor_x1.currentPosition();
   last_posx2 = motor_x2.currentPosition();
-  last_posx3 = motor_x3.currentPosition();
+  last_gantry = motor_gantry.currentPosition();
   last_posy  = motor_y.currentPosition();
-  last_posz  = motor_z.currentPosition();
+  last_posz1  = motor_z1.currentPosition();
+  last_posz2  = motor_z2.currentPosition();
 }
 
 // TEST
@@ -393,92 +354,6 @@ void update_last_positions(){
 void update_motor_states(){
   update_last_directions();
   update_last_positions();
-}
-
-// ! Used for testing only
-// WORKS
-void test_run_individual(){
-// Move counter-clockwise
-
-  long target_posx1;
-  long target_posx2;
-  long target_posx3;
-  long target_posy;
-  long target_posz;
-
-  // X
-  target_posx1 = motor_x1.currentPosition() - NUM_STEP;
-  translate(&motor_x1, target_posx1);
-
-  target_posx2 = motor_x2.currentPosition() - NUM_STEP;
-  translate(&motor_x2, target_posx2);
-
-  target_posx3 = motor_x3.currentPosition() - NUM_STEP;
-  translate(&motor_x3, target_posx3);
-
-  // Y
-  target_posy = motor_y.currentPosition() - NUM_STEP;
-  translate(&motor_y, target_posy);
-
-  // Z
-  target_posz = motor_z.currentPosition() - NUM_STEP;
-  translate(&motor_z, target_posz);
-
-  
-  // Move clockwise
-  // X
-  target_posx1 = motor_x1.currentPosition() + NUM_STEP;
-  translate(&motor_x1, target_posx1);
-
-  target_posx2 = motor_x2.currentPosition() + NUM_STEP;
-  translate(&motor_x2, target_posx2);
-
-  target_posx3 = motor_x3.currentPosition() + NUM_STEP;
-  translate(&motor_x3, target_posx3);
-
-  // Y
-  target_posy = motor_y.currentPosition() + NUM_STEP;
-  translate(&motor_y, target_posy);
-
-  // Z
-  target_posz = motor_z.currentPosition() + NUM_STEP;
-  translate(&motor_z, target_posz);
-}
-
-// ! Used for testing only
-// WORKS
-void test_run_group(){
-  // Set all positions for the motors to move in
-
-  // positions: {X1, X2, X3, Y, Z}
-  //             0   1   2   3  4
-  
-  long positions[5];
-
-  positions[0] = 500;
-  positions[1] = 500;
-  positions[2] = 500;
-  positions[3] = 500;
-  positions[4] = 200;
-
-  // Set target positions
-  stepperBabies.moveTo(positions);
-
-  // Run motors to target positions
-  stepperBabies.runSpeedToPosition();
-
-  // Small delay
-  delay(1010);
-
- // Same as before but other direction
-  positions[0] = -500;
-  positions[1] = -500;
-  positions[2] = -500;
-  positions[3] = -500;
-  positions[4] = -200;
-  stepperBabies.moveTo(positions);
-  stepperBabies.runSpeedToPosition();
-  delay(1010);
 }
 
 // WORKS
@@ -493,61 +368,6 @@ void oscillate(AccelStepper *motor, long left, long right){
   }
 }
 
-// WORKING
-// Returns the mid point between two points
-long mid_point(long lower_bound, long upper_bound){
-  return ((upper_bound + lower_bound)/2);
-}
-
-// TEST
-// Moves all motors to their respective reference points
-void go_to_reference(){
-  long positions[5];
-
-  if(REFERENCE_POS == 0){
-    // Send all motors to their midpoint on linear actuator
-    positions[0] = mid_point(x1_left, x1_right);
-    positions[1] = mid_point(x2_left, x2_right);
-    positions[2] = mid_point(x3_left, x3_right);
-    positions[3] = mid_point(y_left,  y_right);
-    positions[4] = mid_point(z_lower, z_upper);
-
-    // Set target positions
-    stepperBabies.moveTo(positions);
-
-    // Run motors to target positions
-    stepperBabies.runSpeedToPosition();
-
-  }else if(REFERENCE_POS == 1){
-    // Send all motors to their midpoint on linear actuator
-    positions[0] = x1_right;
-    positions[1] = x2_right;
-    positions[2] = x3_right;
-    positions[3] = y_right;
-    positions[4] = z_upper;
-
-    // Set target positions
-    stepperBabies.moveTo(positions);
-
-    // Run motors to target positions
-    stepperBabies.runSpeedToPosition();
-
-  }else if(REFERENCE_POS == -1){
-    // Send all motors to their midpoint on linear actuator
-    positions[0] = x1_left;
-    positions[1] = x2_left;
-    positions[2] = x3_left;
-    positions[3] = y_left;
-    positions[4] = z_lower;
-
-    // Set target positions
-    stepperBabies.moveTo(positions);
-
-    // Run motors to target positions
-    stepperBabies.runSpeedToPosition();
-
-  }
-}
 
 // WORKING but needs further TESTING
 // Get all the bounds of each linear actuator
@@ -564,21 +384,21 @@ void calibrate_motors_polling(){
   delay(1000);
   while (take_step_until_bound(&motor_x2, -1, &x2_right)){;}
 
-  // Serial.println("Bounds:\nLeft:" + String(x2_left));
-  // Serial.println("Right:" + String(x2_right));
-  // oscillate(&motor_x2, x2_left, x2_right);
 
-  while (take_step_until_bound(&motor_x3, 1, &x3_left)){;}
-  delay(1000);
-  while (take_step_until_bound(&motor_x3, -1, &x3_right)){;}
+  while(take_step_until_bound(&motor_gantry,1,&gantry_left);
+  while(take_step_until_bound(&motor_gantry,-1,&gantry_right);)
 
   while (take_step_until_bound(&motor_y, 1, &y_left)){;}
   delay(1000);
   while (take_step_until_bound(&motor_y, -1, &y_right)){;}
 
-  while (take_step_until_bound(&motor_z, 1, &z_lower)){;}
+  while (take_step_until_bound(&motor_z1, 1, &z1_lower)){;}
   delay(1000);
-  while (take_step_until_bound(&motor_z, -1, &z_upper)){;}
+  while (take_step_until_bound(&motor_z1, -1, &z1_upper)){;}
+
+  while (take_step_until_bound(&motor_z2, 1, &z2_lower)){;}
+  delay(1000);
+  while (take_step_until_bound(&motor_z2, -1, &z2_upper)){;}
 }
 
 // TEST
@@ -594,8 +414,8 @@ void calibrate_motors_interrupts(){
 
   delay(500);
 
-  find_bound(&motor_x3,1,&x3_left);
-  find_bound(&motor_x3,1,&x3_right);
+  find_bound(&motor_gantry,1,&gantry_left);
+  find_bound(&motor_gantry,1,&gantry_right);
 
   delay(500);
 
@@ -604,8 +424,12 @@ void calibrate_motors_interrupts(){
 
   delay(500);
 
-  find_bound(&motor_z,1,&z_lower);
-  find_bound(&motor_z,1,&z_upper);
+  find_bound(&motor_z1,1,&z1_lower);
+  find_bound(&motor_z1,1,&z1_upper);
+
+
+  find_bound(&motor_z2,1,&z2_lower);
+  find_bound(&motor_z2,1,&z2_upper);
 
 }
 
@@ -626,18 +450,37 @@ void calibrate_motors(){
 
 /*###########################################################################################*/
 /*Servo Functions*/
+
+void gripper(int a, Servo x)
+{
+  int currentPos =  x.read();
+  if (currentPos > a)
+  {
+    for (int angle = currentPos; angle >= a; angle--) {
+      x.write(angle);
+      delay(15);
+    }
+  }
+  else if (currentPos < a)
+  {
+    for (int angle = currentPos; angle <= a; angle++) {
+      x.write(angle);
+      delay(15);
+    }
+  }
+}
+
 // TODO
-// Yousef
 // Open gripper arms enough to grab one plate
 void open_gripper(){
-
+  gripper(OPEN,servo);
 }
 
 // TODO
 // Yousef
 // Close gripper arms enough to secure one plate
 void close_gripper(){
-
+  gripper(CLOSE, servo);
 }
 
 /*###########################################################################################*/
@@ -747,47 +590,6 @@ void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int d
 
 
 /*###########################################################################################*/
-/*LCD functions*/
-// TODO
-// DOMINIC
-// Initialize the LCD.
-void configure_LCD(){
-
-}
-
-// TODO
-// DOMINIC
-/*
-  screen_num:
-    1 -> greeting
-    2 -> input_1
-    3 -> input_2
-*/
-void display_screen(int screen_num){
-  if(screen_num == 0){
-
-  }else if(screen_num == 1){
-
-  }else if(screen_num == 2){
-    
-  }else if(screen_num == 3){
-    
-  }else{
-
-  }
-}
-
-// TODO
-// DOMINIC
-// Get user input from the LCD
-void get_user_input(int screen_num){
-
-  // 1. Display screen for user input
-  // 2. Cycle through screens for input and get all the necessary user input
-  // 3. Store the user input as global variables
-
-}
-
 
 /*###########################################################################################*/
 /* Interrupt Service Routines (ISRs) */
@@ -810,14 +612,15 @@ void x2_ISR(){
   }
 }
 
-void x3_ISR(){
-  motor_x3.stop();
-  if (x3_left == -1){
-    x3_left = motor_x3.currentPosition();
+void gantry_ISR(){
+ motor_gantry.stop();
+ if (gantry_left == -1){
+    gantry_left = motor_gantry.currentPosition();
   }else{
-    x3_right = motor_x3.currentPosition();
+    gantry_right = motor_gantry.currentPosition();
   }
 }
+
 
 void y_ISR(){
   motor_y.stop();
@@ -829,23 +632,25 @@ void y_ISR(){
 }
 
 void z_ISR(){
-  motor_z.stop();
-  if (z_lower == -1){
-    z_lower = motor_z.currentPosition();
+  motor_z1.stop();
+  if (z1_lower == -1){
+    z1_lower = motor_z1.currentPosition();
   }else{
-    z_upper = motor_z.currentPosition();
+    z1_upper = motor_z1.currentPosition();
   }
 }
+void z_ISR(){
+  motor_z2.stop();
+  if (z2_lower == -1){
+    z2_lower = motor_z2.currentPosition();
+  }else{
+    z2_upper = motor_z2.currentPosition();
+  }
+
 /*###########################################################################################*/
 
-void test(){
-  // take_from_stack();
-  // do_pin_transfer();
-  // wash_pin_tool();
-  // dry_pin_tool();
-  // push_onto_stack();
-}
 
+// ! Not sure if will be used... Will probably just poll
 void motor_ISR(){
   if (gantry_limit_L == 0){
     Serial.println("gantry_limit_L");
@@ -883,44 +688,36 @@ void motor_ISR(){
   }
 }
 
+
 void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
-  // // Set the state of any pins used as inputs
-  // set_pins();
 
-  // // Display startup screen
-  // // 0 -> startup screen
-  // display_screen(0);
+  // Set the state of any pins used as inputs
+  set_pins();
 
-  // // Set the max speed and acceleration values for each motor
-  // configure_motors();
+  // Set the max speed and acceleration values for each motor
+  configure_motors();
 
-  // // Initialize LCD
-  // configure_LCD();
-  
-  // // Add stepper motor objects to MultiStepper object
-  // add_all_steppers_to_manager();
+  // Initialize LCD
+  configure_LCD();
 
-  // // Determine the bounds of each actuator
-  // calibrate_motors();
+  // Display startup screen
+  // 0 -> startup screen
+  display_screen(0);
 
-  // // Calls whatever things we are testing in the test() function call
-  // test();
+  // Add stepper motor objects to MultiStepper object
+  add_all_steppers_to_manager();
+
+  // Find reference positions
+  calibrate_motors();
 
 }
 
 void setup() {
+  run_startup();
 
-  // run_startup();
-
-  // Delay for this function is set by constant
-  dry_pin_tool();
- 
-  // Calls whatever things we are testing in the test() function call
-  // test();
-  attachInterrupt(digitalPinToInterrupt(2), motor_ISR, RISING);
 }
 
 void loop() {
