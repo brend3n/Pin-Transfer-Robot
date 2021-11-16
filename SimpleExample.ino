@@ -101,6 +101,15 @@ void gripper(int a, Servo x)
   }
 }
 
+
+
+// Prints the current position of each motor to the serial for testing and getting position values for hard coding.
+void print_current_position(){
+	
+	Serial.println("X1 Position: " + String(motor_x1.currentPosition() +"\nX2 Position: " + String(motor_x2.currentPosition() + "\nY Position: " + String(motor_y.currentPosition() + "\nZ Position: " + String(motor_z.currentPosition()));
+	
+}
+
 void setup(){
 
     Serial.begin(19200);
