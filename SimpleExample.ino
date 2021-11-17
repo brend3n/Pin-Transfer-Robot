@@ -62,8 +62,6 @@ AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
 AccelStepper motor_z = AccelStepper(interface, stepPinz, dirPinz);
 Servo servo = Servo();
 
-#define steps 100
-
 void gripper(int a, Servo x)
 {
   int currentPos =  x.read();
@@ -116,10 +114,9 @@ void setup(){
     motor_z.setAcceleration(MAX_ACCELERATION);
 
 
-
-//    calibrate_motor(&motor_z, z_switch);
-//    calibrate_motor(&gantry, x_switch);
-    calibrate_motor(&motor_y, y_switch);
+    while(digitalRead(x_switch) == HIGH){
+    }
+    gripper_movement_test();
 }
 
 
@@ -289,19 +286,30 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
 
 void gripper_movement_test(){ 
 
+  
+  Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch);
+  Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch);
+  Serial.println("Calibrating Z");
   long z_start = calibrate_motor(&motor_z, z_switch);
 
   gantry.setSpeed(100);
   motor_y.setSpeed(100);
   motor_z.setSpeed(100);
 
-  gantry.runToNewPosition(x_start);
+
   motor_y.runToNewPosition(y_start);
+  gantry.runToNewPosition(x_start);
   motor_z.runToNewPosition(z_start);
 }
 
 void loop(){
+
+//  Serial.println("X: " + String(digitalRead(x_switch)));
+//  Serial.println("Y: " + String(digitalRead(y_switch)));
+//  Serial.println("Z: " + String(digitalRead(z_switch)));
+//  delay(1000);
+
 }
   
