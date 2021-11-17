@@ -13,9 +13,6 @@
 #define dirPinz  42
 #define stepPinz 43
 
-#define dirPinx2  44
-#define stepPinx2 45
-
 #define dirPinx1 46
 #define stepPinx1 47 
 
@@ -25,7 +22,10 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 22
+#define y_switch 33
+#define x_switch 35
+//#define z_switch 31
+#define z_switch 44
 
 #define speed_t 100
 
@@ -69,7 +69,6 @@ bool gantryIsSet = false;
 
 // Instantiating motor driver objects
 AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
-AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
 AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
 AccelStepper motor_z = AccelStepper(interface, stepPinz, dirPinz);
 Servo servo = Servo();
@@ -105,9 +104,9 @@ void gripper(int a, Servo x)
 
 // Prints the current position of each motor to the serial for testing and getting position values for hard coding.
 void print_current_position(){
-	
-	Serial.println("X1 Position: " + String(motor_x1.currentPosition() +"\nX2 Position: " + String(motor_x2.currentPosition() + "\nY Position: " + String(motor_y.currentPosition() + "\nZ Position: " + String(motor_z.currentPosition()));
-	
+  
+  Serial.println("X1 Position: " + String(motor_x1.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ Position: " + String(motor_z.currentPosition()));
+  
 }
 
 void setup(){
@@ -119,32 +118,37 @@ void setup(){
     pinMode(switch_s, INPUT_PULLUP);
     pinMode(buttonPin, INPUT);
 
+    pinMode(x_switch, INPUT);
     pinMode(y_switch, INPUT);
+    pinMode(z_switch, INPUT);
 
     servo.attach(9);
 
     // Set maxmium speeds
     motor_x1.setMaxSpeed(MAX_SPEED);
-    motor_x2.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
     motor_z.setMaxSpeed(MAX_SPEED);
 
     // Set acceleration
     motor_x1.setAcceleration(MAX_ACCELERATION);
-    motor_x2.setAcceleration(MAX_ACCELERATION);
     motor_y.setAcceleration(MAX_ACCELERATION);
     motor_z.setAcceleration(MAX_ACCELERATION);
 
+
     // Add motors to multistepper object
-    gantry.addStepper(motor_x1);
-    gantry.addStepper(motor_x2);
 
-    Serial.println("Hello");
-
-    motor_x1.setSpeed(speed_t);
-    motor_x2.setSpeed(-1*speed_t);
 
     servo.write(OPEN);
+    servo.write(CLOSE);
+    servo.write(OPEN);
+
+    Serial.println("START");
+    calibrate_z();
+    Serial.println("END");
+
+    
+    
+
 }
 
 void get_states(){
@@ -175,23 +179,15 @@ void control_motor(){
     if (mapX > 400){
         Serial.println("RIGHT");
         motor_x1.setSpeed(400);
-        motor_x2.setSpeed(-400);
-        while (mapX > 400){
-            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
-            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
-            motor_x1.runSpeed();
-            motor_x2.runSpeed();
+        while (mapX > 400){         
+            motor_x1.runSpeed();           
             get_states();
         }
     }else if (mapX < -400){
         Serial.println("LEFT");
         motor_x1.setSpeed(-400);
-        motor_x2.setSpeed(400);
         while (mapX < -400){
-            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
-            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
-            motor_x1.runSpeed();
-            motor_x2.runSpeed();
+            motor_x1.runSpeed();            
             get_states();
         }
     }else if(mapY > 400){
@@ -247,7 +243,7 @@ void control_motor(){
     }else{
         motor_z.stop();
         motor_x1.stop();
-        motor_x2.stop();
+
         motor_y.stop();
     }
 
@@ -264,83 +260,91 @@ void control_motor(){
 }
 
 
-
+/*Christopeher sais to scween shot this one and put it on my github profiles accout for the govmebrewert to see */
 void test(){
-//  motor_x1.setSpeed(speed_t);
-//  motor_x2.setSpeed(-1*speed_t);
 
-  motor_x1.move(100);
-  motor_x2.move(-100);
+  motor_x1.moveTo(100);
+  motor_x1.setSpeed(100);
 
   while (motor_x1.distanceToGo() != 0){
-    motor_x1.runToPosition();
-    motor_x2.runToPosition();  
-    
+    motor_x1.runSpeed();
   }
 
-  motor_x1.move(-100);
-  motor_x2.move(100);
+  motor_x1.moveTo(-100);
+  motor_x1.setSpeed(-100);
 
   while (motor_x1.distanceToGo() != 0){
-    motor_x1.runToPosition();
-    motor_x2.runToPosition();  
-    
+    motor_x1.runSpeed();
   }
-
-//
-//  motor_x1.move(-100);
-//  motor_x2.move(100);
-//  
-//  motor_x1.runSpeedToPosition();
-//  motor_x2.runSpeedToPosition();
-//_
-//  unsigned long start = millis(); 
-//  bool m1 = motor_x1.runSpeed();
-//  bool m2 = motor_x2.runSpeed();
-//
-//  
-//  Serial.println("Time: " + String(start) + "\nm1: " + String(m1) + "\nm2: " +String(m2));
   
 }
 
-void fuck(){
+void test_brenden(){
+  motor_x1.moveTo(100);
+  motor_x1.runToPosition();
+
+  motor_x1.moveTo(-100);
+  motor_x1.runToPosition();
+}
+
+void calibrate_x(){
+  motor_x1.setSpeed(100);
+//  motor_x2.setSpeed(-100);
+  while (digitalRead(x_switch) == LOW){
+    motor_x1.runSpeed();
+//    motor_x2.runSpeed();
+  }
+  motor_x1.setCurrentPosition(0);
+//  motor_x2.setCurrentPosition(0);
+}
+
+void calibrate_y(){
+  motor_y.setSpeed(100);
+  while (digitalRead(y_switch) == LOW){
+    motor_y.runSpeed();
+  }
+  motor_y.setCurrentPosition(0);
   
-  // Set all positions for the motors to move in
+}
 
-  // positions: {X1, X2, X3, Y, Z}
-  //             0   1   2   3  4
+void calibrate_z(){
+  Serial.println("BEFORE Current Position: " + String(motor_z.currentPosition()));
+  motor_z.setSpeed(100);
+
+  while(true){
+    if(digitalRead(z_switch) == LOW){
+      motor_z.stop();
+      motor_z.move(-50);
+      motor_z.runToPosition();
+      break;
+    }
+    motor_z.runSpeed();
+  }
+ 
+  Serial.println("AFTER Current Position: " + String(motor_z.currentPosition()));
+  motor_z.setCurrentPosition(0);
+  Serial.println("Current Position AFTER setCurrentPosition(0): " + String(motor_z.currentPosition()));
+  motor_z.setCurrentPosition(1010);
+  Serial.println("Current Position AFTER setCurrentPosition(1010): " + String(motor_z.currentPosition()));
   
-  long positions[2];
-
-  positions[0] = 100;
-  positions[1] = -100;
+}
+void pickup_test(){
   
+}
 
-  // Set target positions
-  gantry.moveTo(positions);
+void motor_test(){
 
-
-  
-  // Run motors to target positions
-  gantry.runSpeedToPosition();
-
-
-
-  // Small delay
-//  delay(1010);
-
- // Same as before but other direction
-  positions[0] = -100;
-  positions[1] = 100;
-
-  gantry.moveTo(positions);
-  gantry.runSpeedToPosition();
-//  delay(1010);
+  motor_y.setSpeed(100);
+  while(true){
+    motor_y.runSpeed();  
+  }
 }
 
 
 void loop(){
-//    control_motor();
-//  test();
-  fuck();
+//  Serial.println("x:" + String(digitalRead(x_switch)));
+//  Serial.println("y:" + String(digitalRead(y_switch)));
+//  Serial.println("z:" + String(digitalRead(z_switch))+ "\n");
+//  delay(1000);
 }
+  
