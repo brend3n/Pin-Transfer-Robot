@@ -23,9 +23,9 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 33
-#define x_switch 35
-#define z_switch 44
+#define y_switch 27
+#define x_switch 29
+#define z_switch 26
 
 #define gantry_speed 100
 #define y_speed 100
@@ -257,8 +257,9 @@ void calibrate_z(){
 }
 
 // Calibrates a single motor given by &motor and a limit switch
-void calibrate_motor(AccelStepper *motor, int limit_switch){
+long calibrate_motor(AccelStepper *motor, int limit_switch){
 
+    long steps = 0;
     Serial.println("Start Position:");
     print_current_position();
     
@@ -268,6 +269,10 @@ void calibrate_motor(AccelStepper *motor, int limit_switch){
         motor->runSpeed();
     }
 
+    // Distance from starting position to limit switch
+    // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
+    steps = -1*motor->currentPosition();
+    Serial.println("Steps taken to reach limit switch: " + String(steps));
     // Stop the motor and store the current position
     motor->stop();
     motor->setCurrentPosition(0);
@@ -278,17 +283,15 @@ void calibrate_motor(AccelStepper *motor, int limit_switch){
     // Move the motor off the limit switch
     motor->move(-50);
     motor->runToPosition();
+
+    return steps;
 }
 
 void gripper_movement_test(){ 
 
-  long x_start = gantry.currentPosition();
-  long y_start = motor_y.currentPosition();
-  long z_start = motor_z.currentPosition();
-
-  calibrate_motor(&gantry , x_switch);
-  calibrate_motor(&motor_y, y_switch);
-  calibrate_motor(&motor_z, z_switch);
+  long x_start = calibrate_motor(&gantry , x_switch);
+  long y_start = calibrate_motor(&motor_y, y_switch);
+  long z_start = calibrate_motor(&motor_z, z_switch);
 
   gantry.setSpeed(100);
   motor_y.setSpeed(100);
