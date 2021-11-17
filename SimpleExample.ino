@@ -2,6 +2,7 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <Servo.h>
+#include <EEPROM.h>
 
 // Motor driver type
 #define interface  1
@@ -116,7 +117,9 @@ void setup(){
 
 
 
-    calibrate_motor(&motor_z, z_switch);
+//    calibrate_motor(&motor_z, z_switch);
+//    calibrate_motor(&gantry, x_switch);
+    calibrate_motor(&motor_y, y_switch);
 }
 
 
@@ -255,10 +258,13 @@ void calibrate_z(){
 
 // Calibrates a single motor given by &motor and a limit switch
 void calibrate_motor(AccelStepper *motor, int limit_switch){
+
+    Serial.println("Start Position:");
+    print_current_position();
     
     // Set the current speed and run until the limit switch is hit
     motor->setSpeed(100);
-    while (digitalRead(limit_switch) == LOW){
+    while (digitalRead(limit_switch) != LOW){
         motor->runSpeed();
     }
 
@@ -266,12 +272,31 @@ void calibrate_motor(AccelStepper *motor, int limit_switch){
     motor->stop();
     motor->setCurrentPosition(0);
 
+    Serial.println("End Position:");
+    print_current_position();
+
     // Move the motor off the limit switch
     motor->move(-50);
     motor->runToPosition();
 }
 
-void pickup_test(){ 
+void gripper_movement_test(){ 
+
+  long x_start = gantry.currentPosition();
+  long y_start = motor_y.currentPosition();
+  long z_start = motor_z.currentPosition();
+
+  calibrate_motor(&gantry , x_switch);
+  calibrate_motor(&motor_y, y_switch);
+  calibrate_motor(&motor_z, z_switch);
+
+  gantry.setSpeed(100);
+  motor_y.setSpeed(100);
+  motor_z.setSpeed(100);
+
+  gantry.runToNewPosition(x_start);
+  motor_y.runToNewPosition(y_start);
+  motor_z.runToNewPosition(z_start);
 }
 
 void loop(){
