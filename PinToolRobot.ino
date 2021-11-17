@@ -477,7 +477,6 @@ void open_gripper(){
 }
 
 // TODO
-// Yousef
 // Close gripper arms enough to secure one plate
 void close_gripper(){
   gripper(CLOSE, servo);
