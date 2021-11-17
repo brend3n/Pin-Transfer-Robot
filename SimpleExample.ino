@@ -84,7 +84,7 @@ void gripper(int a, Servo x)
 
 // Prints the current position of each motor to the serial for testing and getting position values for hard coding.
 void print_current_position(){
-    Serial.println("X1 Position: " + String(motor_x1.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ Position: " + String(motor_z.currentPosition()) + "\n"); 
+    Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ Position: " + String(motor_z.currentPosition()) + "\n"); 
 }
 
 void setup(){
@@ -105,14 +105,18 @@ void setup(){
     servo.attach(9);
 
     // Set maxmium speeds
-    motor_x1.setMaxSpeed(MAX_SPEED);
+    gantry.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
     motor_z.setMaxSpeed(MAX_SPEED);
 
     // Set acceleration
-    motor_x1.setAcceleration(MAX_ACCELERATION);
+    gantry.setAcceleration(MAX_ACCELERATION);
     motor_y.setAcceleration(MAX_ACCELERATION);
     motor_z.setAcceleration(MAX_ACCELERATION);
+
+
+
+    calibrate_motor(&motor_z, z_switch);
 }
 
 
