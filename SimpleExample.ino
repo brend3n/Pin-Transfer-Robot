@@ -116,6 +116,7 @@ void setup(){
 
     while(digitalRead(x_switch) == HIGH){
     }
+    delay(3000);
     gripper_movement_test();
 }
 
@@ -285,22 +286,38 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
 }
 
 void gripper_movement_test(){ 
+  int val;
 
-  
+  gripper(OPEN, servo);
+  while(true){
+    if(digitalRead(x_switch) == LOW){
+      if(val == CLOSE){
+        val = OPEN;
+      }else{
+        val = CLOSE;
+      }
+      
+      gripper(val, servo);
+      
+    }else if(digitalRead(y_switch) == LOW){
+      break;
+    }
+  }
+
+  Serial.println("Calibrating Z");
+  long z_start = calibrate_motor(&motor_z, z_switch); 
   Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch);
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch);
-  Serial.println("Calibrating Z");
-  long z_start = calibrate_motor(&motor_z, z_switch);
-
+ 
+  motor_z.setSpeed(100);
   gantry.setSpeed(100);
   motor_y.setSpeed(100);
-  motor_z.setSpeed(100);
+  
 
-
-  motor_y.runToNewPosition(y_start);
   gantry.runToNewPosition(x_start);
+  motor_y.runToNewPosition(y_start);
   motor_z.runToNewPosition(z_start);
 }
 
@@ -310,6 +327,5 @@ void loop(){
 //  Serial.println("Y: " + String(digitalRead(y_switch)));
 //  Serial.println("Z: " + String(digitalRead(z_switch)));
 //  delay(1000);
-
 }
   
