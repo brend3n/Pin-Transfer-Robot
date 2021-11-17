@@ -7,17 +7,14 @@
 #define interface  1
 
 // Direction and Step pins for all motors
-#define dirPinx1  45
-#define stepPinx1 44
+#define dirPiny  40
+#define stepPiny 41
 
-#define dirPinx2  33
-#define stepPinx2 32
+#define dirPinz  42
+#define stepPinz 43
 
-#define dirPinz  48
-#define stepPinz 49
-
-#define dirPiny  27
-#define stepPiny 26
+#define dirPinx1 46
+#define stepPinx1 47 
 
 #define CLOSE 50
 #define OPEN  0
@@ -25,20 +22,21 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 22
+#define y_switch 33
+#define x_switch 35
+#define z_switch 44
 
-// if one stepper for gantry
-// #define dirPinGantry -1
-// #define stepPinGantry -1
+#define gantry_speed 100
+#define y_speed 100
+#define z_speed 100
 
 
+// Joy-stick controller
 #define x_dir A0
 #define y_dir A1
-#define switch_s 13
-#define buttonPin 53 
+#define switch_s 52
+#define buttonPin 22
 
-
-#define SPEED_FACTOR 1.25
 
 // Switch variables
 int switch_state;
@@ -48,35 +46,20 @@ int switch_count = 1;
 int button_state;
 bool button_mode = false;
 
-
+// Joy-stick variables
 int x_pos;
 int y_pos;
 int mapX;
 int mapY;
 
-long pos[2];
-
-bool gantryIsSet = false;
-
-
 #define MAX_SPEED 100
 #define MAX_ACCELERATION 100
 
 // Instantiating motor driver objects
-AccelStepper motor_x1 = AccelStepper(interface, stepPinx1, dirPinx1);
-AccelStepper motor_x2 = AccelStepper(interface, stepPinx2, dirPinx2);
+AccelStepper gantry = AccelStepper(interface, stepPinx1, dirPinx1);
 AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
 AccelStepper motor_z = AccelStepper(interface, stepPinz, dirPinz);
 Servo servo = Servo();
-
-// if one stepper for gantry
-// AccelStepper gantry = AccelStepper(interface, stepPinGantry, dirPinGantry);
-
-AccelStepper* current_motor;
-
-
-MultiStepper gantry;
-
 
 #define steps 100
 
@@ -99,133 +82,125 @@ void gripper(int a, Servo x)
   }
 }
 
+// Prints the current position of each motor to the serial for testing and getting position values for hard coding.
+void print_current_position(){
+    Serial.println("X1 Position: " + String(motor_x1.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ Position: " + String(motor_z.currentPosition()) + "\n"); 
+}
+
 void setup(){
 
-    Serial.begin(9600);
+    Serial.begin(19200);
 
+    // Setting pins
     pinMode(x_dir, INPUT);
     pinMode(y_dir, INPUT);
-    pinMode(switch_s, INPUT_PULLUP);
     pinMode(buttonPin, INPUT);
+    pinMode(switch_s, INPUT_PULLUP);
 
+    pinMode(x_switch, INPUT);
     pinMode(y_switch, INPUT);
+    pinMode(z_switch, INPUT);
 
+    // Configure servo
     servo.attach(9);
 
     // Set maxmium speeds
     motor_x1.setMaxSpeed(MAX_SPEED);
-    motor_x2.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
     motor_z.setMaxSpeed(MAX_SPEED);
 
     // Set acceleration
     motor_x1.setAcceleration(MAX_ACCELERATION);
-    motor_x2.setAcceleration(MAX_ACCELERATION);
     motor_y.setAcceleration(MAX_ACCELERATION);
     motor_z.setAcceleration(MAX_ACCELERATION);
-
-    // Add motors to multistepper object
-    gantry.addStepper(motor_x1);
-    gantry.addStepper(motor_x2);
-
-    servo.write(OPEN);
 }
 
+
+// Update the states from all of the inputs
 void get_states(){
     x_pos = analogRead(x_dir);  
     y_pos = analogRead(y_dir);
     switch_state = digitalRead(switch_s);
     button_state = digitalRead(buttonPin);
 
-    mapX = map(x_pos, 0,1024,-512,512);
-    mapY = map(y_pos, 0,1024,-512,512);
+    mapX = map(x_pos, 363,1023,-512,512);
+    mapY = map(y_pos, 0,734,-512,512);
+
+    Serial.println("switch_state: " + String(switch_state));
+    Serial.println("x_pos: " + String(mapX));
+    Serial.println("y_pos: " + String(mapY));
+    Serial.println(""); 
 }
+
 void control_motor(){
     get_states();
 
     // Toggle button mode each time it is clicked
     if (button_state == HIGH){
-      delay(200);
-      button_mode = !button_mode;
-      Serial.println("Button toggled");
+        // Debounce a bit
+        delay(200);
+        button_mode = !button_mode;
+        Serial.println("Button toggled");
     }
-    
+    // Joy-stick is RIGHT
     if (mapX > 400){
-        Serial.println("RIGHT");
-        motor_x1.setSpeed(4000);
-        motor_x2.setSpeed(-4000);
-        while (mapX > 400){
-            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
-            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
-            motor_x1.runSpeed();
-            motor_x2.runSpeed();
+        // Serial.println("RIGHT");
+        gantry.setSpeed(gantry_speed);
+        while (mapX > 400){         
+            gantry.runSpeed();           
             get_states();
         }
+
+    // Joy-stick is LEFT
     }else if (mapX < -400){
-        Serial.println("LEFT");
-        motor_x1.setSpeed(-4000);
-        motor_x2.setSpeed(4000);
+        // Serial.println("LEFT");
+        gantry.setSpeed(-gantry_speed);
         while (mapX < -400){
-            // motor_x1.setSpeed(motor_x1.speed()*SPEED_FACTOR);
-            // motor_x2.setSpeed(motor_x2.speed()*SPEED_FACTOR);
-            motor_x1.runSpeed();
-            motor_x2.runSpeed();
+            gantry.runSpeed();            
             get_states();
         }
+    // Joy-stick is DOWN
     }else if(mapY > 400){
 
         if (!button_mode){
-          // Z-axis
-          Serial.println("DOWN");
-          motor_z.setSpeed(DOWN * 10);
-          while (mapY > 400){
-              // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
-              motor_z.runSpeed();
-              get_states();
+            //  Z-axis
+            //  Serial.println("DOWN");
+            motor_z.setSpeed(z_speed);
+            while (mapY > 400){
+                motor_z.runSpeed();
+                get_states();
           }
         }else{
-          //Y-axis
-          Serial.println("Y LEFT");
-          motor_y.setSpeed(-1000);
+        //  Y-axis
+        //  Serial.println("Y LEFT");
+          motor_y.setSpeed(-y_speed);
           while (mapY > 400){
-              // motor_y.setSpeed(motor_y.speed()*SPEED_FACTOR);
-              if(digitalRead(y_switch) == LOW){
-                motor_y.stop();
-                break;
-              }
               motor_y.runSpeed();
               get_states();
           }
-
         }
-        
-    }else if(mapY < -400){
+    }
+    // Joy-stick is UP
+    else if(mapY < -400){
         if (!button_mode){
           // Z-axis
-          motor_z.setSpeed(UP*10);
+          motor_z.setSpeed(z_speed);
           while (mapY < -400){
-              // motor_z.setSpeed(motor_z.speed()*SPEED_FACTOR);
-              motor_z.runSpeed();
-              get_states();
+                motor_z.runSpeed();
+                get_states();
           }
         }else{
           //Y-axis
-          Serial.println("Y RIGHT");
-          motor_y.setSpeed(1000);
+        //   Serial.println("Y RIGHT");
+          motor_y.setSpeed(y_speed);
           while (mapY < -400){
-              if(digitalRead(y_switch) == LOW){
-                  motor_y.stop();
-                  break;
-              }
-              // motor_y.setSpeed(motor_y.speed()*SPEED_FACTOR);
-              motor_y.runSpeed();
-              get_states();
+                motor_y.runSpeed();
+                get_states();
           }
         }
     }else{
         motor_z.stop();
-        motor_x1.stop();
-        motor_x2.stop();
+        gantry.stop();
         motor_y.stop();
     }
 
@@ -241,6 +216,60 @@ void control_motor(){
     }
 }
 
-void loop(){
-    control_motor();
+/*Test the x-axis motors*/
+void test(){
+
+  gantry.moveTo(100);
+  gantry.setSpeed(100);
+
+  while (gantry.distanceToGo() != 0){
+    gantry.runSpeed();
+  }
+
+  gantry.moveTo(-100);
+  gantry.setSpeed(-100);
+
+  while (gantry.distanceToGo() != 0){
+    gantry.runSpeed();
+  }  
 }
+
+void calibrate_z(){
+  motor_z.setSpeed(100);
+
+  while(true){
+    if(digitalRead(z_switch) == LOW){
+      motor_z.stop();
+      motor_z.move(-50);
+      motor_z.runToPosition();
+      break;
+    }
+    motor_z.runSpeed();
+  }
+  motor_z.setCurrentPosition(0);
+}
+
+// Calibrates a single motor given by &motor and a limit switch
+void calibrate_motor(AccelStepper *motor, int limit_switch){
+    
+    // Set the current speed and run until the limit switch is hit
+    motor->setSpeed(100);
+    while (digitalRead(limit_switch) == LOW){
+        motor->runSpeed();
+    }
+
+    // Stop the motor and store the current position
+    motor->stop();
+    motor->setCurrentPosition(0);
+
+    // Move the motor off the limit switch
+    motor->move(-50);
+    motor->runToPosition();
+}
+
+void pickup_test(){ 
+}
+
+void loop(){
+}
+  
