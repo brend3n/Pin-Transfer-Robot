@@ -31,16 +31,23 @@
 #define z1_switch 26
 #define z2_switch 26
 
-#define gantry_speed 100
-#define y_speed 100
-#define z_speed 100
+#define SPEED_GANTRY 100
+#define SPEED_Y 100
+#define SPEED_Z 100
 
 
 // Joy-stick controller
-#define x_dir A0
-#define y_dir A1
-#define switch_s 52
+#define x_dir     A0
+#define y_dir     A1
+#define switch_s  52
 #define buttonPin 22
+
+
+#define SPEED_Z1     100
+#define SPEED_Z1     100
+#define SPEED_GANTRY 100
+#define SPEED_Y      100
+
 
 
 // Switch variables
@@ -158,7 +165,7 @@ void control_motor(){
     // Joy-stick is RIGHT
     if (mapX > 400){
         // Serial.println("RIGHT");
-        gantry.setSpeed(gantry_speed);
+        gantry.setSpeed(SPEED_GANTRY);
         while (mapX > 400){         
             gantry.runSpeed();           
             get_states();
@@ -167,7 +174,7 @@ void control_motor(){
     // Joy-stick is LEFT
     }else if (mapX < -400){
         // Serial.println("LEFT");
-        gantry.setSpeed(-gantry_speed);
+        gantry.setSpeed(-SPEED_GANTRY);
         while (mapX < -400){
             gantry.runSpeed();            
             get_states();
@@ -178,7 +185,7 @@ void control_motor(){
         if (!button_mode){
             //  Z-axis
             //  Serial.println("DOWN");
-            motor_z.setSpeed(z_speed);
+            motor_z.setSpeed(SPEED_Z);
             while (mapY > 400){
                 motor_z.runSpeed();
                 get_states();
@@ -186,7 +193,7 @@ void control_motor(){
         }else{
         //  Y-axis
         //  Serial.println("Y LEFT");
-          motor_y.setSpeed(-y_speed);
+          motor_y.setSpeed(-SPEED_Y);
           while (mapY > 400){
               motor_y.runSpeed();
               get_states();
@@ -197,7 +204,7 @@ void control_motor(){
     else if(mapY < -400){
         if (!button_mode){
           // Z-axis
-          motor_z.setSpeed(z_speed);
+          motor_z.setSpeed(SPEED_Z);
           while (mapY < -400){
                 motor_z.runSpeed();
                 get_states();
@@ -205,7 +212,7 @@ void control_motor(){
         }else{
           //Y-axis
         //   Serial.println("Y RIGHT");
-          motor_y.setSpeed(y_speed);
+          motor_y.setSpeed(SPEED_Y);
           while (mapY < -400){
                 motor_y.runSpeed();
                 get_states();
@@ -265,8 +272,10 @@ void calibrate_z(){
 // Calibrates a single motor given by &motor and a limit switch
 long calibrate_motor(AccelStepper *motor, int limit_switch){
 
-    long steps = 0;
+    long steps;
     Serial.println("Start Position:");
+
+    // For testing
     print_current_position();
     
     // Set the current speed and run until the limit switch is hit
@@ -278,11 +287,14 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
+
+    // For testing
     Serial.println("Steps taken to reach limit switch: " + String(steps));
     // Stop the motor and store the current position
     motor->stop();
     motor->setCurrentPosition(0);
 
+    // For testing
     Serial.println("End Position:");
     print_current_position();
 
@@ -293,6 +305,8 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
     return steps;
 }
 
+
+// Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
 void gripper_movement_test(){ 
   int val;
 
@@ -303,32 +317,36 @@ void gripper_movement_test(){
         val = OPEN;
       }else{
         val = CLOSE;
-      }
-      
+      }    
       gripper(val, servo);
-      
     }else if(digitalRead(y_switch) == LOW){
       break;
     }
   }
 
-  Serial.println("Calibrating Z");
-  long z_start = calibrate_motor(&motor_z, z_switch); 
+  Serial.println("Calibrating Z1");
+  long z1_start = calibrate_motor(&motor_z1, z1_switch); 
+
+  Serial.println("Calibrating Z2");
+  long z2_start = calibrate_motor(&motor_z2, z2_switch); 
+
   Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch);
+
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch);
  
-  motor_z.setSpeed(100);
-  gantry.setSpeed(100);
-  motor_y.setSpeed(100);
+  motor_z1.setSpeed(SPEED_Z1);
+  motor_z2.setSpeed(SPEED_Z2);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
   
 
   gantry.runToNewPosition(x_start);
   motor_y.runToNewPosition(y_start);
-  motor_z.runToNewPosition(z_start);
+  motor_z1.runToNewPosition(z1_start);
+  motor_z2.runToNewPosition(z2_start);
 }
-
 
 void move_y(){
   motor_y.setSpeed(-100);
@@ -337,13 +355,17 @@ void move_y(){
   }
 }
 
+
+void test_limit_switches(){
+   Serial.println("X: " + String(digitalRead(x_switch)));
+   Serial.println("Y: " + String(digitalRead(y_switch)));
+   Serial.println("Z1: " + String(digitalRead(z1_switch)));
+   Serial.println("Z2: " + String(digitalRead(z2_switch)));
+   delay(1000);
+}
 void loop(){
 
-//  Serial.println("X: " + String(digitalRead(x_switch)));
-//  Serial.println("Y: " + String(digitalRead(y_switch)));
-//  Serial.println("Z1: " + String(digitalRead(z1_switch)));
-//  Serial.println("Z2: " + String(digitalRead(z2_switch)));
-//  delay(1000);
-  move_y();
+  test_limit_switches();
+
 }
   
