@@ -11,11 +11,14 @@
 #define dirPiny  40
 #define stepPiny 41
 
-#define dirPinz  42
-#define stepPinz 43
+#define dirPinz1  42
+#define stepPinz1 43
 
-#define dirPinx1 46
-#define stepPinx1 47 
+#define dirPinz2  -1
+#define stepPinz2 -1
+
+#define dirPinx 46
+#define stepPinx 47 
 
 #define CLOSE 50
 #define OPEN  0
@@ -25,7 +28,8 @@
 
 #define y_switch 27
 #define x_switch 29
-#define z_switch 26
+#define z1_switch 26
+#define z2_switch 26
 
 #define gantry_speed 100
 #define y_speed 100
@@ -57,9 +61,10 @@ int mapY;
 #define MAX_ACCELERATION 100
 
 // Instantiating motor driver objects
-AccelStepper gantry = AccelStepper(interface, stepPinx1, dirPinx1);
+AccelStepper gantry = AccelStepper(interface, stepPinx, dirPinx);
 AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
-AccelStepper motor_z = AccelStepper(interface, stepPinz, dirPinz);
+AccelStepper motor_z1 = AccelStepper(interface, stepPinz1, dirPinz1);
+AccelStepper motor_z2 = AccelStepper(interface, stepPinz2, dirPinz2);
 Servo servo = Servo();
 
 void gripper(int a, Servo x)
@@ -98,7 +103,8 @@ void setup(){
 
     pinMode(x_switch, INPUT);
     pinMode(y_switch, INPUT);
-    pinMode(z_switch, INPUT);
+    pinMode(z1_switch, INPUT);
+    pinMode(z2_switch, INPUT);
 
     // Configure servo
     servo.attach(9);
@@ -106,18 +112,20 @@ void setup(){
     // Set maxmium speeds
     gantry.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
-    motor_z.setMaxSpeed(MAX_SPEED);
+    motor_z1.setMaxSpeed(MAX_SPEED);
+    motor_z2.setMaxSpeed(MAX_SPEED);
 
     // Set acceleration
     gantry.setAcceleration(MAX_ACCELERATION);
     motor_y.setAcceleration(MAX_ACCELERATION);
-    motor_z.setAcceleration(MAX_ACCELERATION);
+    motor_z1.setAcceleration(MAX_ACCELERATION);
+    motor_z2.setAcceleration(MAX_ACCELERATION);
 
 
-    while(digitalRead(x_switch) == HIGH){
-    }
-    delay(3000);
-    gripper_movement_test();
+//    while(digitalRead(x_switch) == HIGH){
+//    }
+//    delay(3000);
+//    gripper_movement_test();
 }
 
 
@@ -321,11 +329,21 @@ void gripper_movement_test(){
   motor_z.runToNewPosition(z_start);
 }
 
+
+void move_y(){
+  motor_y.setSpeed(-100);
+  while(true){
+    motor_y.runSpeed();
+  }
+}
+
 void loop(){
 
 //  Serial.println("X: " + String(digitalRead(x_switch)));
 //  Serial.println("Y: " + String(digitalRead(y_switch)));
-//  Serial.println("Z: " + String(digitalRead(z_switch)));
+//  Serial.println("Z1: " + String(digitalRead(z1_switch)));
+//  Serial.println("Z2: " + String(digitalRead(z2_switch)));
 //  delay(1000);
+  move_y();
 }
   

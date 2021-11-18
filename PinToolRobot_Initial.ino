@@ -692,7 +692,6 @@ void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
-
   // Set the state of any pins used as inputs
   set_pins();
 
