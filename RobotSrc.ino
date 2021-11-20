@@ -26,10 +26,10 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 24
+#define y_switch 26
 #define x_switch 25
-#define z1_switch 27
-#define z2_switch 28
+#define z1_switch 24
+#define z2_switch 29
 
 #define SPEED_GANTRY 100
 #define SPEED_Y 100
@@ -124,9 +124,12 @@ void setup(){
     motor_z2.setAcceleration(MAX_ACCELERATION);
 
 
-   while(digitalRead(x_switch) == HIGH){
-   }
-   delay(3000);
+//   Serial.println("Press x-switch to begin");
+//   while(digitalRead(x_switch) == HIGH){
+//   }
+//   Serial.println("Starting calibration");
+//   delay(3000);
+   
   //  gripper_movement_test();
 }
 
@@ -356,11 +359,12 @@ void test_limit_switches(){
    Serial.println("Y: " + String(digitalRead(y_switch)));
    Serial.println("Z1: " + String(digitalRead(z1_switch)));
    Serial.println("Z2: " + String(digitalRead(z2_switch)));
+   Serial.println();
    delay(1000);
 }
 void loop(){
 
-  test_limit_switches();
+//  test_limit_switches();
 
 }
   
