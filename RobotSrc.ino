@@ -8,17 +8,17 @@
 #define interface  1
 
 // Direction and Step pins for all motors
-#define dirPiny  40
-#define stepPiny 41
+#define dirPiny   40
+#define stepPiny  41
 
 #define dirPinz1  42
 #define stepPinz1 43
 
-#define dirPinz2  -1
-#define stepPinz2 -1
+#define dirPinz2  44
+#define stepPinz2 45
 
-#define dirPinx 46
-#define stepPinx 47 
+#define dirPinx   46
+#define stepPinx  47 
 
 #define CLOSE 50
 #define OPEN  0
@@ -29,7 +29,7 @@
 #define y_switch 27
 #define x_switch 29
 #define z1_switch 26
-#define z2_switch 26
+#define z2_switch 28
 
 #define SPEED_GANTRY 100
 #define SPEED_Y 100
@@ -102,12 +102,6 @@ void setup(){
 
     Serial.begin(19200);
 
-    // Setting pins
-    pinMode(x_dir, INPUT);
-    pinMode(y_dir, INPUT);
-    pinMode(buttonPin, INPUT);
-    pinMode(switch_s, INPUT_PULLUP);
-
     pinMode(x_switch, INPUT);
     pinMode(y_switch, INPUT);
     pinMode(z1_switch, INPUT);
@@ -129,10 +123,10 @@ void setup(){
     motor_z2.setAcceleration(MAX_ACCELERATION);
 
 
-//    while(digitalRead(x_switch) == HIGH){
-//    }
-//    delay(3000);
-//    gripper_movement_test();
+   while(digitalRead(x_switch) == HIGH){
+   }
+   delay(3000);
+  //  gripper_movement_test();
 }
 
 
