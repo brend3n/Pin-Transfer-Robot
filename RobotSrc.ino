@@ -26,9 +26,9 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 27
-#define x_switch 29
-#define z1_switch 26
+#define y_switch 24
+#define x_switch 25
+#define z1_switch 27
 #define z2_switch 28
 
 #define SPEED_GANTRY 100
@@ -72,6 +72,7 @@ AccelStepper gantry = AccelStepper(interface, stepPinx, dirPinx);
 AccelStepper motor_y = AccelStepper(interface, stepPiny, dirPiny);
 AccelStepper motor_z1 = AccelStepper(interface, stepPinz1, dirPinz1);
 AccelStepper motor_z2 = AccelStepper(interface, stepPinz2, dirPinz2);
+AccelStepper motor_z = AccelStepper(interface, stepPinz2, dirPinz2);
 Servo servo = Servo();
 
 void gripper(int a, Servo x)
@@ -95,7 +96,7 @@ void gripper(int a, Servo x)
 
 // Prints the current position of each motor to the serial for testing and getting position values for hard coding.
 void print_current_position(){
-    Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ Position: " + String(motor_z.currentPosition()) + "\n"); 
+    Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
 }
 
 void setup(){
@@ -252,7 +253,7 @@ void calibrate_z(){
   motor_z.setSpeed(100);
 
   while(true){
-    if(digitalRead(z_switch) == LOW){
+    if(digitalRead(z1_switch) == LOW){
       motor_z.stop();
       motor_z.move(-50);
       motor_z.runToPosition();
@@ -330,8 +331,8 @@ void gripper_movement_test(){
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch);
  
-  motor_z1.setSpeed(SPEED_Z1);
-  motor_z2.setSpeed(SPEED_Z2);
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
   
