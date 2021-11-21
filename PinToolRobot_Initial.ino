@@ -48,23 +48,31 @@
 
 /*###########################################################################################*/
 /* LCD Pin Definitions*/
+
+// Touch Screen Pins
 #define YP A3  
 #define XM A2  
 #define YM 9   
 #define XP 8 
-TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+
+// LCD Pins
 #define LCD_CS A3
 #define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 #define LCD_RESET A4
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+
+// HEX color defines
 #define BLACK 0x0000
 #define WHITE 0xFFFF
 
 
 // 13 on the UNO myabe something different on the mega2560
 #define LCD_CLOCK 13
+
+// Instantiate touch screen and lcd objects
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 /*###########################################################################################*/
 /*Other Pin Definitions*/
@@ -85,9 +93,8 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 // Motor speeds
 #define SPEED_GANTRY 100
-#define SPEED_Y 100
-#define SPEED_Z 100
-
+#define SPEED_Y      100
+#define SPEED_Z      100
 #define SPEED_Z1     100
 #define SPEED_Z2     100
 
@@ -108,58 +115,6 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define steps_per_mm          1024
 
 #define heat_and_fan_delay    5000
-
-// Change to false to do polling
-#define INTERRUPTS_ENABLED false
-
-/*###########################################################################################*/
-/*Position Variables*/
-
-// ! Can be optimized further to save space
-short curr_dirx1;
-int   last_posx1;
-short last_dirx1;
-
-short curr_dirx2;
-int   last_posx2;
-short last_dirx2;
-
-// Gantry
-// Used for the gantry (2 x-axis linear actuators together)
-short curr_dir_gantry;
-int   last_pos_gantry;
-short last_dir_gantry;
-
-short curr_diry;
-int   last_posy;
-short last_diry;
-
-short curr_dirz1;
-int   last_posz1;
-short last_dirz1;
-
-short curr_dirz2;
-int   last_posz2;
-short last_dirz2;
-
-// Bounds of each linear actuator
-long x1_right = -1;
-long x1_left  = -1;
-
-long x2_left  = -1;
-long x2_right = -1;
-
-long gantry_left  = -1;
-long gantry_right = -1;
-
-long y_left   = -1;
-long y_right  = -1;
-
-long z1_lower  = -1;
-long z1_upper  = -1;
-
-long z2_lower  = -1;
-long z2_upper  = -1;
 
 /*###########################################################################################*/
 
@@ -303,9 +258,35 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 }
 
 // Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
-
 // void gripper_movement_test(){ 
 void calibrate_motors(){ 
+
+  Serial.println("Calibrating Z1");
+  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+
+  Serial.println("Calibrating Z2");
+  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+
+  Serial.println("Calibrating gantry");
+  long x_start = calibrate_motor(&gantry , x_switch, -1);
+
+  Serial.println("Calibrating Y");
+  long y_start = calibrate_motor(&motor_y, y_switch, -1);
+ 
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+  
+
+  gantry.runToNewPosition(x_start);
+  motor_y.runToNewPosition(y_start);
+  motor_z1.runToNewPosition(z1_start);
+  motor_z2.runToNewPosition(z2_start);
+}
+
+// Used for returning the absolute coordinates of a certain position
+void get_absolute_positions(){ 
   int val;
 
   gripper(OPEN, servo);
@@ -339,13 +320,15 @@ void calibrate_motors(){
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
   
+  
+  // Print the coordinate from where the motor started
+  Serial.println("X: " + String(x_start) + "\nY: " + String(y_start) + "\nZ1: " + String(z1_start) + "\nZ2: " + String(z2_start));
 
   gantry.runToNewPosition(x_start);
   motor_y.runToNewPosition(y_start);
   motor_z1.runToNewPosition(z1_start);
   motor_z2.runToNewPosition(z2_start);
 }
-
 
 // Test code for verifying limit switches are working
 void test_limit_switches(){
@@ -392,12 +375,9 @@ void close_gripper(){
 
 /*###########################################################################################*/
 /*Robot Functions*/
-// TODO
-// Take plate from a stack
-// stack ==  
-//    false for cell
-//    true for chemical
- 
+
+
+// Moves each motor to a given position starting with the x-axis
 void move_to_coordinate_x_first(long x, long y, long z1, long z2){
 
   motor_z1.setSpeed(SPEED_Z);
@@ -411,6 +391,7 @@ void move_to_coordinate_x_first(long x, long y, long z1, long z2){
   motor_z2.runToNewPosition(z2);
 }
 
+// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
 void move_to_coordinate_z_first(long x, long y, long z1, long z2){
 
   motor_z1.setSpeed(SPEED_Z);
@@ -424,6 +405,12 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
   motor_y.runToNewPosition(y);
 }
 
+// TODO
+// Take plate from a stack
+// stack ==  
+//    false for cell
+//    true for chemical
+ 
 void take_from_stack(boolean stack, int height_to_pick_from){
   // chemical stack
   if (stack){
@@ -613,9 +600,6 @@ void run_all_cycles(boolean *wash_steps, short num_plates, int pin_depth ){
 
 /*###########################################################################################*/
 /*LCD Functions*/
-
-
-
 
 // TODO: use the correct pin number
 // LCD configurations on startup
@@ -1177,7 +1161,6 @@ void redo()
   }
 }
 
-
 /*###########################################################################################*/
 
 void run_startup(){
@@ -1212,14 +1195,16 @@ void setup() {
 }
 
 void loop() {
+  int num_plates;
+  int depth;
+  bool steps[3];	
   while (true)
   {
     plateNumberSetup();
-    int num_plates = plateNumberInput();
+    num_plates = plateNumberInput();
     depthSetup();
-    int depth = depthInput();
+    depth = depthInput();
     washStepSetup();
-    bool steps[3];
     washStepInput(steps);
     if (paramCheck(num_plates, depth, steps))
       break;
@@ -1236,7 +1221,7 @@ void loop() {
 
 
 
-
+/*FLOW OF CONTROL FOR A PIN TRANSFER*/
 /**
  * 
  * 1. Set up
@@ -1301,16 +1286,4 @@ void loop() {
   *     - if so, go back to the top of the loop to get information -> break out of infinite loop
   *     - otherwise, stay in infinite loop waiting
   * 
-  *
-  * 
-  * 
- *           
- *          
- *    
- * 
- * 
- * 
- * 
- * 
- * 
  */
