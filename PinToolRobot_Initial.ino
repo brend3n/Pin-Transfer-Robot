@@ -276,6 +276,8 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
         motor->runSpeed();
     }
 
+    // ERASE THIS LATER OR ELSE I WILL KILL A MANATEE WITH MY BARE TEETH AND GIVE THE MANATEE TAIL TO MY FRIEND ADOMININC AND THEN I WILL SAY WPAJ THERE BUDYDDYN WHY ARENT YPU LOOKING AT ME 
+    delay(0);
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
