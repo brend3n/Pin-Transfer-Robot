@@ -25,30 +25,17 @@
 #define interface  1
 
 // Direction and Step pins for all motors
-/*Two separate motor drivers for each x-axis linear actuator*/
-#define dirPinx1      -1
-#define stepPinx1     -1
+#define dirPinx   46
+#define stepPinx  47 
 
-#define dirPinx2      -1
-#define stepPinx2     -1
+#define dirPiny   40
+#define stepPiny  41
 
-/*
-  One motor driver for both x-axis linear actuators
+#define dirPinz1  42
+#define stepPinz1 43
 
-  Need to wire the motors inversely such that they step together
-*/
-#define dirPinGantry  -1
-#define stepPinGantry -1
-
-#define dirPiny       -1
-#define stepPiny      -1
-
-#define dirPinz1      -1
-#define stepPinz1     -1
-
-/* Other Z-axis linear actuator*/
-#define dirPinz2      -1
-#define stepPinz2     -1
+#define dirPinz2  44
+#define stepPinz2 45
 
 /*###########################################################################################*/
 /*Servo Pins*/
@@ -79,20 +66,26 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 /*Other Pin Definitions*/
 
 // Limit switch pins definitions
-#define x1_limit_switch -1
-#define x2_limit_switch -1
-#define gantry_limit_switch -1
-#define y_limit_switch  -1
-#define z1_limit_switch  -1
-#define z2_limit_switch  -1
+#define y_switch 26
+#define x_switch 25
+#define z1_switch 24
+#define z2_switch 29
 
 // Pins for fan and heater N-Channel MOSFET gate pin
 #define fan_pin         4
 #define heater_pin      4
-#define fan_heater_pin -1 // If using one pin to control both MOSFETS
 
 /*###########################################################################################*/
 /*CONTSTANTS*/
+
+
+// Motor speeds
+#define SPEED_GANTRY 100
+#define SPEED_Y 100
+#define SPEED_Z 100
+
+#define SPEED_Z1     100
+#define SPEED_Z2     100
 
 // Number of steps in a single step of the motor
 #define NUM_STEP   100
@@ -167,84 +160,14 @@ long z2_upper  = -1;
 /*###########################################################################################*/
 
 // Instantiating motor driver objects
-AccelStepper motor_x1     =     AccelStepper(interface, stepPinx1, dirPinx1);
-AccelStepper motor_x2     =     AccelStepper(interface, stepPinx2, dirPinx2);
-AccelStepper motor_gantry =     AccelStepper(interface, stepPinGantry, dirPinGantry);
-AccelStepper motor_y      =     AccelStepper(interface, stepPiny, dirPiny);
-AccelStepper motor_z      =     AccelStepper(interface, stepPinz, dirPinz);
+AccelStepper gantry   = AccelStepper(interface, stepPinx, dirPinx);
+AccelStepper motor_y  = AccelStepper(interface, stepPiny, dirPiny);
+AccelStepper motor_z1 = AccelStepper(interface, stepPinz1, dirPinz1);
+AccelStepper motor_z2 = AccelStepper(interface, stepPinz2, dirPinz2);
 
 Servo servo = Servo();
 
-// Instantiating class that encapsulates a list of motor driver objects
-MultiStepper stepperBabies;
-
 /*###########################################################################################*/
-
-
-// WORKS
-// ! Will not be used in the final version of the code
-// this function can be replaced with AccelStepper function to do the same thing -> Need to ask Yousef which function it was
-// Moves the motor to the specified position=pos
-void translate (AccelStepper *motor, int pos){
-  motor->moveTo(pos);
-  motor->runToPosition();
-  return;
-}
-
-// ! TEST different motor movements when with linear actuator
-// WORKING but STILL TESTING
-// Takes a steps in a given direction
-/*
-
- dir:      
-     1, move right
-    -1, move left
-
-*/
-boolean take_step_until_bound(AccelStepper *motor, short dir, long *bound){
-
-  if (dir > 0){
-    // Move clockwise
-    motor->move(10);
-  }else{
-    // Move counter clockwise
-    motor->move(-10);
-  }
-  // Run movement
-  motor->runSpeedToPosition();
-
-  if ((
-      digitalRead(x1_limit_switch) ||
-      digitalRead(x2_limit_switch) ||
-      digitalRead(gantry_limit_switch) ||
-      digitalRead(y_limit_switch)  ||
-      digitalRead(z1_limit_switch) ||
-      digitalRead(z2_limit_switch)
-      ) == LOW){
-    
-    Serial.println("Bound: " + String(motor->currentPosition()));
-    *bound = motor->currentPosition();
-    return false;
-  }
-  return true;
-}
-
-// ! CHANGE THIS TO IMPLEMENT NEW INTERRUPT THING
-// TEST 
-void find_bound(AccelStepper *motor, short dir, long *bound){
-
-  motor->moveTo(dir*MAX_RUN_DISTANCE);
-  motor->runSpeedToPosition();
-
-  // Checks if the motor stopped
-  // In the ISR, interrupt stops the motor.
-  // This can be used to see if the motor hit the limit switch
-  if (!motor->isRunning()){
-    *bound = motor->currentPosition();
-    return;
-  }
-}
-
 
 // ! NEED
 // Converts a distance in mm to steps
@@ -253,6 +176,14 @@ long convert_mm_to_steps(float mm){
   return steps;
 }
 
+// Prints the current position of each motor to the serial for testing and getting position values for hard coding.
+void print_current_position(){
+    Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
+}
+
+
+
+// ! Probaby not even used so get rid of this shit ... maybe
 // Computes the direction the motor is moving in
 /* 
   Returns:
@@ -284,93 +215,38 @@ int curr_direction(int last_pos, int new_pos){
 // WORKING
 void set_pins(){
 
+  // Polling inputs
+  pinMode(x_switch, INPUT);
+  pinMode(y_switch, INPUT);
+  pinMode(z1_switch, INPUT);
+  pinMode(z2_switch, INPUT);
 
-  if (INTERRUPTS_ENABLED){
-    // Limit Switches
-    attachInterrupt(digitalPinToInterrupt(x1_limit_switch), x1_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(x2_limit_switch), x2_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(gantry_limit_switch), x2_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(y_limit_switch), y_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(z1_limit_switch), z_ISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(z2_limit_switch), z_ISR, RISING);
+  pinMode(heater_pin, INPUT);
+  pinMode(fan_pin, INPUT);
 
-  }else{
-    // Polling inputs
-    pinMode(x1_limit_switch, INPUT_PULLUP);
-    pinMode(x2_limit_switch, INPUT_PULLUP);
-    pinMode(gantry_limit_switch, INPUT_PULLUP);
-    pinMode(y_limit_switch,  INPUT_PULLUP);
-    pinMode(z1_limit_switch,  INPUT_PULLUP);
-    pinMode(z2_limit_switch,  INPUT_PULLUP);
-  }
-
-    // Set up servo
-    servo.attach(SERVO_PIN);
-  
+  // Set up servo
+  servo.attach(SERVO_PIN);  
 }
 
 // WORKING
 // Configure each motor
 void configure_motors(){
 
-  // ! Might want to set different speeds for different linear actuators
 
-  // Set maxmium speeds
-  motor_x1.setMaxSpeed(MAX_SPEED);
-  motor_x2.setMaxSpeed(MAX_SPEED);
-  motor_gantry.setMaxSpeed(MAX_SPEED);
-  motor_y.setMaxSpeed(MAX_SPEED);
-  motor_z1.setMaxSpeed(MAX_SPEED);
-  motor_z2.setMaxSpeed(MAX_SPEED);
+    // Set maxmium speeds
+    gantry.setMaxSpeed(MAX_SPEED);
+    motor_y.setMaxSpeed(MAX_SPEED);
+    motor_z1.setMaxSpeed(MAX_SPEED);
+    motor_z2.setMaxSpeed(MAX_SPEED);
 
-  // Set acceleration
-  motor_x1.setAcceleration(MAX_ACCELERATION);
-  motor_x2.setAcceleration(MAX_ACCELERATION);
-  motor_gantry.setMaxSpeed(MAX_SPEED);
-  motor_y.setAcceleration(MAX_ACCELERATION);
-  motor_z1.setAcceleration(MAX_ACCELERATION);
-  motor_z2.setAcceleration(MAX_ACCELERATION);
+    // Set acceleration
+    gantry.setAcceleration(MAX_ACCELERATION);
+    motor_y.setAcceleration(MAX_ACCELERATION);
+    motor_z1.setAcceleration(MAX_ACCELERATION);
+    motor_z2.setAcceleration(MAX_ACCELERATION);
 }
 
-// WORKING
-// Add all motors to MultiStepper object
-void add_all_steppers_to_manager(){
-  stepperBabies.addStepper(motor_x1);
-  stepperBabies.addStepper(motor_x2);
-  stepperBabies.addStepper(motor_gantry);
-  stepperBabies.addStepper(motor_y);
-  stepperBabies.addStepper(motor_z1);
-  stepperBabies.addStepper(motor_z2);
-}
 
-// TEST
-// Updates all of the current directions that each motor was previously moving in
-void update_last_directions(){
-  last_dirx1 = curr_direction(last_posx1, motor_x1.currentPosition());
-  last_dirx2 = curr_direction(last_posx2, motor_x2.currentPosition());
-  last_dir_gantry = curr_direction(last_posx3, motor_gantry.currentPosition());
-  last_diry  = curr_direction(last_posy,  motor_y.currentPosition());
-  last_dirz1  = curr_direction(last_posz,  motor_z1.currentPosition());
-  last_dirz2  = curr_direction(last_posz,  motor_z2.currentPosition());
-}
-
-// TEST
-// Updates all of the last positions that each motor was previously at
-void update_last_positions(){
-  last_posx1 = motor_x1.currentPosition();
-  last_posx2 = motor_x2.currentPosition();
-  last_gantry = motor_gantry.currentPosition();
-  last_posy  = motor_y.currentPosition();
-  last_posz1  = motor_z1.currentPosition();
-  last_posz2  = motor_z2.currentPosition();
-}
-
-// TEST
-// Updates all motor states
-void update_motor_states(){
-  update_last_directions();
-  update_last_positions();
-}
 
 // WORKS
 // Oscillates between the two bounds of a linear actuator
@@ -385,82 +261,98 @@ void oscillate(AccelStepper *motor, long left, long right){
 }
 
 
-// WORKING but needs further TESTING
-// Get all the bounds of each linear actuator
-void calibrate_motors_polling(){
+// Calibrates a single motor given by &motor and a limit switch
+long calibrate_motor(AccelStepper *motor, int limit_switch){
 
-  // Get right bound
-  while (take_step_until_bound(&motor_x1, 1, &x1_left)){;}
-  delay(1000);
-  // Get left bound
-  while (take_step_until_bound(&motor_x1, -1, &x1_right)){;}
+    long steps;
+    Serial.println("Start Position:");
+
+    // For testing
+    print_current_position();
+    
+    // Set the current speed and run until the limit switch is hit
+    motor->setSpeed(100);
+    while (digitalRead(limit_switch) != LOW){
+        motor->runSpeed();
+    }
+
+    // Distance from starting position to limit switch
+    // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
+    steps = -1*motor->currentPosition();
+
+    // For testing
+    Serial.println("Steps taken to reach limit switch: " + String(steps));
+    // Stop the motor and store the current position
+    motor->stop();
+    motor->setCurrentPosition(0);
+
+    // For testing
+    Serial.println("End Position:");
+    print_current_position();
+
+    // Move the motor off the limit switch
+    motor->move(-50);
+    motor->runToPosition();
+
+    return steps;
+}
+
+// Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
+
+// void gripper_movement_test(){ 
+void calibrate_motors(){ 
+  int val;
+
+
+  // TEST
+  gripper(OPEN, servo);
+  while(true){
+    if(digitalRead(x_switch) == LOW){
+      if(val == CLOSE){
+        val = OPEN;
+      }else{
+        val = CLOSE;
+      }    
+      gripper(val, servo);
+    }else if(digitalRead(y_switch) == LOW){
+      break;
+    }
+  }
+  // TEST
+
+  Serial.println("Calibrating Z1");
+  long z1_start = calibrate_motor(&motor_z1, z1_switch); 
+
+  Serial.println("Calibrating Z2");
+  long z2_start = calibrate_motor(&motor_z2, z2_switch); 
+
+  Serial.println("Calibrating gantry");
+  long x_start = calibrate_motor(&gantry , x_switch);
+
+  Serial.println("Calibrating Y");
+  long y_start = calibrate_motor(&motor_y, y_switch);
+ 
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
   
 
-  while (take_step_until_bound(&motor_x2, 1, &x2_left)){;}
-  delay(1000);
-  while (take_step_until_bound(&motor_x2, -1, &x2_right)){;}
-
-
-  while(take_step_until_bound(&motor_gantry,1,&gantry_left);
-  while(take_step_until_bound(&motor_gantry,-1,&gantry_right);)
-
-  while (take_step_until_bound(&motor_y, 1, &y_left)){;}
-  delay(1000);
-  while (take_step_until_bound(&motor_y, -1, &y_right)){;}
-
-  while (take_step_until_bound(&motor_z1, 1, &z1_lower)){;}
-  delay(1000);
-  while (take_step_until_bound(&motor_z1, -1, &z1_upper)){;}
-
-  while (take_step_until_bound(&motor_z2, 1, &z2_lower)){;}
-  delay(1000);
-  while (take_step_until_bound(&motor_z2, -1, &z2_upper)){;}
+  gantry.runToNewPosition(x_start);
+  motor_y.runToNewPosition(y_start);
+  motor_z1.runToNewPosition(z1_start);
+  motor_z2.runToNewPosition(z2_start);
 }
 
-// TEST
-// Get all the bounds of each linear actuator
-void calibrate_motors_interrupts(){
-  find_bound(&motor_x1,1,&x1_left);
-  find_bound(&motor_x1,1,&x1_right);
 
-  delay(500);
-
-  find_bound(&motor_x2,1,&x2_right);
-  find_bound(&motor_x2,1,&x2_right);
-
-  delay(500);
-
-  find_bound(&motor_gantry,1,&gantry_left);
-  find_bound(&motor_gantry,1,&gantry_right);
-
-  delay(500);
-
-  find_bound(&motor_y,1,&y_left);
-  find_bound(&motor_y,1,&y_right);
-
-  delay(500);
-
-  find_bound(&motor_z1,1,&z1_lower);
-  find_bound(&motor_z1,1,&z1_upper);
-
-
-  find_bound(&motor_z2,1,&z2_lower);
-  find_bound(&motor_z2,1,&z2_upper);
-
-}
-
-// TEST
-// Runs the calibration sequence depending on whether interrupts are enabled.
-void calibrate_motors(){
-  if (INTERRUPTS_ENABLED){
-    Serial.println("INTERRUPTS in calibrate_motors()");
-    calibrate_motors_interrupts();
-  }else{
-    Serial.println("POLLING in calibrate_motors()");
-    calibrate_motors_polling();
-  }
-
-  // go_to_reference();
+// Test code for verifying limit switches are working
+void test_limit_switches(){
+   Serial.println("X: " + String(digitalRead(x_switch)));
+   Serial.println("Y: " + String(digitalRead(y_switch)));
+   Serial.println("Z1: " + String(digitalRead(z1_switch)));
+   Serial.println("Z2: " + String(digitalRead(z2_switch)));
+   Serial.println();
+   delay(1000);
 }
 
 
@@ -486,13 +378,11 @@ void gripper(int a, Servo x)
   }
 }
 
-// TODO
 // Open gripper arms enough to grab one plate
 void open_gripper(){
   gripper(OPEN,servo);
 }
 
-// TODO
 // Close gripper arms enough to secure one plate
 void close_gripper(){
   gripper(CLOSE, servo);
@@ -502,13 +392,13 @@ void close_gripper(){
 /*Robot Functions*/
 // TODO
 // Take plate from a stack
-void take_from_stack(AccelStepper *motor, int stack, int height_to_pick_from){
+void take_from_stack(int stack, int height_to_pick_from){
 
 }
 
 // TODO
 // Put a plate onto a stack
-void push_onto_stack(AccelStepper *motor, int stack, int height_to_put_on){
+void push_onto_stack(int stack, int height_to_put_on){
 
 }
 
@@ -1197,12 +1087,6 @@ void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
-  // Set the state of any pins used as inputs
-  set_pins();
-
-  // Set the max speed and acceleration values for each motor
-  configure_motors();
-
   // Initialize LCD
   configure_LCD();
 
@@ -1210,6 +1094,13 @@ void run_startup(){
   // 0 -> startup screen
   greeting();
 
+  // Set the state of any pins used as inputs
+  set_pins();
+
+  // Set the max speed and acceleration values for each motor
+  configure_motors();
+
+  
   // Add stepper motor objects to MultiStepper object
   add_all_steppers_to_manager();
 
@@ -1227,3 +1118,86 @@ void loop() {
   // get_user_input();
   // run_all_cycles();
 }
+
+
+
+
+
+
+/**
+ * 
+ * 1. Set up
+ * Loop:
+     1. LCD input from user
+  * Cycle:
+  *    2. take a plate from the cell plate stack
+  *        - Position gripper over stack
+  *            - moving gantry to stack x coordinate
+  *            - moving y-axis over stack
+  *            - calculate stack height of plate to grab
+  *            - move gripper (z2) down to plate
+  *            - grab plate
+  *            - move up gripper (z2) some distance to not interfere with anything
+  *            - move it to pin transfer area, move to correct x-y coordinate
+  *            - lower gripper to base
+  *            - ungrip
+  *            - Raise gripper
+  *     3. Repeat step 2 for Chemical stack
+  *     4. Set up for pin transfer
+  *        - move y axis over chemical plate
+  *        - lower pin tool into chemical plate based on pin tool depth given by user
+  *        - maybe some delay for absorption
+  *        -  raise up pin tool
+  *        - move y axis over cell plate
+  *        - lower pin tool (z1) with chemicals into cell plate
+  *        - maybe some delay for transfer
+  *        - move up pin tool to end transfer to get out of the way
+  * 
+  *      5. Move cell plate with chemicals into output stack
+  *          - position gripper over cell plate with chemicals
+  *              - move gantry over plate
+  *          - lower gripper (z2) to pick up plate
+  *          - grip
+  *          - raise plate in gripper
+  *          - move x and y position to output stack
+  *          - calculate height to place plate into stack
+  *          - place plate into stack
+  *          - raise gripper to get out of the way
+  *    
+  *      6. Wash pin tool
+  *          - move x and y over to first cleaning solution selected by user
+  *          - dip pin tool (z1) into cleaning solution .. wait sometime for cleaning
+  *          - move pin tool (z1 ) up and to next cleaning solution if user selected more 
+  *          - repeat previous steps for each solution selected
+  * 
+  *      7. Drying stage
+  *          - position x and y to be over the fan/heater.
+  *          - lower pin tool(z1) some distance over the fan/heater
+  *          - turn on fan and heater
+  *          - delay for some time for drying
+  *          - turn off fan and heater
+  *      8. Reset x,y,z1,z2 positions for another cycle
+  *          - moving gantry over stack
+  * 
+  * 
+  * 
+  *  After all cycles
+  * 
+  *   Infinite loop
+  *   - Ask user if want to do another set of pin transfers
+  *     - if so, go back to the top of the loop to get information -> break out of infinite loop
+  *     - otherwise, stay in infinite loop waiting
+  * 
+  *
+  * 
+  * 
+ *           
+ *          
+ *    
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
