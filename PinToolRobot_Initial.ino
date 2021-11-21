@@ -570,24 +570,27 @@ void do_pin_transfer(long pin_depth){
 
 // TODO
 // Wash the pin tool.
-void wash_pin_tool(boolean [] wash_steps){
+void wash_pin_tool(boolean * wash_steps){
   // 1. Move pin tool to wash step linear actuator
   for(int wash_step = 0; wash_step < 3; wash_step++){
     if(wash_steps[wash_step]){
       do_wash(wash_step);
     }
   }
-
 }
 
 // TODO
 // TEST
-void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
-   take_from_stack();
-   do_pin_transfer();
+void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
+  // Chemical stack
+   take_from_stack(true, height_of_next_plate_in_steps_input_stack);
+   // Cell stack
+   take_from_stack(false, height_of_next_plate_in_steps_input_stack);
+   do_pin_transfer(pin_depth);
    wash_pin_tool(wash_steps);
-   dry_pin_tool();
-   push_onto_stack();
+   do_fan_and_heat(drying_time);
+   push_onto_stack(true, height_of_next_plate_in_steps_output_stack);
+   push_onto_stack(false, height_of_next_plate_in_steps_output_stack);
 }
 
 // TODO
