@@ -344,6 +344,55 @@ void gripper_movement_test(){
   motor_z2.runToNewPosition(z2_start);
 }
 
+// Used for returning the absolute coordinates of a certain position
+void get_absolute_positions(){ 
+  int val;
+
+
+  Serial.println("Press x limit switch to toggle gripper");
+  Serial.println("Press the y limit switch to begin calibration");
+
+  gripper(OPEN, servo);
+  while(true){
+    if(digitalRead(x_switch) == LOW){
+      if(val == CLOSE){
+        val = OPEN;
+      }else{
+        val = CLOSE;
+      }    
+      gripper(val, servo);
+    }else if(digitalRead(y_switch) == LOW){
+      break;
+    }
+  }
+
+  Serial.println("Calibrating Z1");
+  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+
+  Serial.println("Calibrating Z2");
+  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+
+  Serial.println("Calibrating gantry");
+  long x_start = calibrate_motor(&gantry , x_switch, -1);
+
+  Serial.println("Calibrating Y");
+  long y_start = calibrate_motor(&motor_y, y_switch, -1);
+ 
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+  
+  
+  // Print the coordinate from where the motor started
+  Serial.println("X: " + String(x_start) + "\nY: " + String(y_start) + "\nZ1: " + String(z1_start) + "\nZ2: " + String(z2_start));
+
+  gantry.runToNewPosition(x_start);
+  motor_y.runToNewPosition(y_start);
+  motor_z1.runToNewPosition(z1_start);
+  motor_z2.runToNewPosition(z2_start);
+}
+
 void move_y(){
   motor_y.setSpeed(100);
   while(true){
@@ -361,11 +410,8 @@ void test_limit_switches(){
    delay(1000);
 }
 void loop(){
-  // move_y();
-//  test_limit_switches();
-gripper(CLOSE, servo);
-delay(2000);
-gripper(OPEN, servo);
 
+  test_limit_switches();
+  get_absolute_positions();
 }
   
