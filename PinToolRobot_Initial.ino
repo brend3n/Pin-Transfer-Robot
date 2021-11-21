@@ -1050,7 +1050,7 @@ void progressScreen(int plateNum, String location)
 
 // TODO: use the correct pin to write with
 // Screen for when the pin tool operation has finished
-boolean redo()
+void redo()
 {
   tft.fillScreen(BLACK);
   tft.setCursor(25, 120);
@@ -1070,14 +1070,10 @@ boolean redo()
     {
       int x = map(point.x, 78, 951, 0, 320);
       int y = map(point.y, 96, 921, 0, 240);
-      Serial.println(x);
-      Serial.println(y);
-      Serial.println();
       if (x >= 106 && x <= 214 && y >= 90 && y <= 105)
-        return true;
+        break;
     }
   }
-  return true;
 }
 
 
@@ -1115,8 +1111,24 @@ void setup() {
 }
 
 void loop() {
-  // get_user_input();
+  while (true)
+  {
+    plateNumberSetup();
+    int num_plates = plateNumberInput();
+    depthSetup();
+    int depth = depthInput();
+    washStepSetup();
+    bool steps[3];
+    washStepInput(steps);
+    if (paramCheck(num_plates, depth, steps))
+      break;
+  }
+  tft.fillScreen(BLACK);
+  progressScreen(0, "Starting...");
+
   // run_all_cycles();
+
+  redo();
 }
 
 
