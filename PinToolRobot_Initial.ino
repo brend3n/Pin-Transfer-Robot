@@ -62,6 +62,10 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define BLACK 0x0000
 #define WHITE 0xFFFF
 
+
+// 13 on the UNO myabe something different on the mega2560
+#define LCD_CLOCK 13
+
 /*###########################################################################################*/
 /*Other Pin Definitions*/
 
@@ -276,8 +280,6 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
         motor->runSpeed();
     }
 
-    // ERASE THIS LATER OR ELSE I WILL KILL A MANATEE WITH MY BARE TEETH AND GIVE THE MANATEE TAIL TO MY FRIEND ADOMININC AND THEN I WILL SAY WPAJ THERE BUDYDDYN WHY ARENT YPU LOOKING AT ME 
-    delay(0);
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
@@ -392,13 +394,68 @@ void close_gripper(){
 /*Robot Functions*/
 // TODO
 // Take plate from a stack
-void take_from_stack(int stack, int height_to_pick_from){
+// stack ==  
+//    false for cell
+//    true for chemical
+ 
+void move_to_coordinate_x_first(long x, long y, long z1, long z2){
 
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+}
+
+void move_to_coordinate_z_first(long x, long y, long z1, long z2){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+}
+
+void take_from_stack(boolean stack, int height_to_pick_from){
+  // chemical stack
+  if (stack){
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, 0, height_to_pick_from);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_cell_stack, y_over_cell_stack, 0, 0);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, 0, z2_on_cell_area_on_workspace);
+    open_gripper();
+  }
+  // cell stack
+  else{
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, 0, height_to_pick_from);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, 0, 0);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, 0, z2_on_cell_area_on_workspace);
+    open_gripper();
+  }
 }
 
 // TODO
 // Put a plate onto a stack
-void push_onto_stack(int stack, int height_to_put_on){
+void put_onto_stack(int stack, int height_to_put_on){
 
 }
 
@@ -461,8 +518,21 @@ void do_fan_and_heat(int drying_time_ms){
 
 // TODO
 // Perform a single pin transfer and bring the pin back to its starting position.
-void do_pin_transfer(){
+void do_pin_transfer(long pin_depth){
 
+  long depth = convert_mm_to_steps(pin_depth);
+
+  // Move to chemical plate to absorb chemicals in pin tool also dipping pin tool in chemical plate
+  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_chemical_area, depth,0);
+  delay(time_for_full_absorption_of_chemicals_in_ms);
+
+  // Moving pin tool out of chemical plate
+  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, 0,0);
+  // Moving pin tool to cell plate and transfer chemicals to cells
+  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, depth, 0);
+  delay(time_for_full_transfer_of_chemicals_in_ms)
+  // Moving pin tool out of cell plate
+  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, 0,0);
 }
 
 // TODO
@@ -516,6 +586,10 @@ void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
 /*###########################################################################################*/
 /*LCD Functions*/
+
+
+
+
 // TODO: use the correct pin number
 // LCD configurations on startup
 void configure_lcd()
@@ -1140,7 +1214,7 @@ void loop() {
  * 
  * 1. Set up
  * Loop:
-     1. LCD input from user
+     //// 1. LCD input from user
   * Cycle:
   *    2. take a plate from the cell plate stack
   *        - Position gripper over stack
