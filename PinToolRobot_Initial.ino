@@ -596,7 +596,7 @@ void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of
 // TODO
 // TEST
 //void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int drying_time){/
-void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
+void run_all_cycles(boolean *wash_steps, short num_plates, int pin_depth ){
 
    
   double height_of_stack = (num_plates * plate_height_in_mm);
@@ -1227,7 +1227,7 @@ void loop() {
   tft.fillScreen(BLACK);
   progressScreen(0, "Starting...");
 
-  // run_all_cycles();
+  run_all_cycles();
 
   redo();
 }
