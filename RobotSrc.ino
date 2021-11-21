@@ -28,13 +28,8 @@
 
 #define y_switch 26
 #define x_switch 25
-#define z1_switch 24
-#define z2_switch 29
-
-#define SPEED_GANTRY 100
-#define SPEED_Y 100
-#define SPEED_Z 100
-
+#define z1_switch 29
+#define z2_switch 24
 
 // Joy-stick controller
 #define x_dir     A0
@@ -44,8 +39,9 @@
 
 
 #define SPEED_Z1     100
-#define SPEED_Z1     100
-#define SPEED_GANTRY 100
+#define SPEED_Z2     100
+#define SPEED_Z      100
+#define SPEED_GANTRY -50
 #define SPEED_Y      100
 
 
@@ -131,6 +127,7 @@ void setup(){
 //   delay(3000);
    
   //  gripper_movement_test();
+    servo.write(OPEN);
 }
 
 
@@ -268,7 +265,7 @@ void calibrate_z(){
 }
 
 // Calibrates a single motor given by &motor and a limit switch
-long calibrate_motor(AccelStepper *motor, int limit_switch){
+long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 
     long steps;
     Serial.println("Start Position:");
@@ -277,7 +274,7 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
     print_current_position();
     
     // Set the current speed and run until the limit switch is hit
-    motor->setSpeed(100);
+    motor->setSpeed(100 * dir);
     while (digitalRead(limit_switch) != LOW){
         motor->runSpeed();
     }
@@ -297,7 +294,8 @@ long calibrate_motor(AccelStepper *motor, int limit_switch){
     print_current_position();
 
     // Move the motor off the limit switch
-    motor->move(-50);
+    
+    motor->move(50 * -1 * dir);
     motor->runToPosition();
 
     return steps;
@@ -323,16 +321,16 @@ void gripper_movement_test(){
   }
 
   Serial.println("Calibrating Z1");
-  long z1_start = calibrate_motor(&motor_z1, z1_switch); 
+  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
 
   Serial.println("Calibrating Z2");
-  long z2_start = calibrate_motor(&motor_z2, z2_switch); 
+  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
 
   Serial.println("Calibrating gantry");
-  long x_start = calibrate_motor(&gantry , x_switch);
+  long x_start = calibrate_motor(&gantry , x_switch, -1);
 
   Serial.println("Calibrating Y");
-  long y_start = calibrate_motor(&motor_y, y_switch);
+  long y_start = calibrate_motor(&motor_y, y_switch, -1);
  
   motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
@@ -347,7 +345,7 @@ void gripper_movement_test(){
 }
 
 void move_y(){
-  motor_y.setSpeed(-100);
+  motor_y.setSpeed(100);
   while(true){
     motor_y.runSpeed();
   }
@@ -363,8 +361,11 @@ void test_limit_switches(){
    delay(1000);
 }
 void loop(){
-
+  // move_y();
 //  test_limit_switches();
+gripper(CLOSE, servo);
+delay(2000);
+gripper(OPEN, servo);
 
 }
   
