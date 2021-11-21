@@ -412,8 +412,34 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
 //    true for chemical
  
 void take_from_stack(boolean stack, int height_to_pick_from){
+
+  #define x_over_chemical_stack -1
+  #define y_over_chemical_stack -1
+  #define x_over_pin_transfer_area -1
+  #define y_over_pin_transfer_for_chemical -1
+  #define z2_on_chemical_area_on_workspace -1
+
+  #define x_over_cell_stack -1
+  #define y_over_cell_stack -1
+  #define x_over_pin_transfer_area -1
+  #define y_over_pin_transfer_for_cell -1
+  #define z2_on_cell_area_on_workspace -1
+  
   // chemical stack
   if (stack){
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, 0, height_to_pick_from);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, 0, 0);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, 0, z2_on_chemical_area_on_workspace);
+    open_gripper();
+  }
+  // cell stack
+  else{
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, 0, height_to_pick_from);
@@ -425,33 +451,35 @@ void take_from_stack(boolean stack, int height_to_pick_from){
     move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, 0, z2_on_cell_area_on_workspace);
     open_gripper();
   }
-  // cell stack
-  else{
-    // Position gripper over stack
-    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, 0, height_to_pick_from);
-    close_gripper();
-    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
-    // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, 0, 0);
-    // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, 0, z2_on_cell_area_on_workspace);
-    open_gripper();
-  }
 }
 
 // TODO
 // Put a plate onto a stack
-void put_onto_stack(int stack, int height_to_put_on){
+void push_onto_stack(int stack, int height_to_put_on){
+
+  #define x_over_chemical_plate_after_transfer -1
+  #define y_over_chemical_plate_after_transfer -1
+  #define chemical_plate_on_base -1
+  #define x_over_pin_chemical_output_stack -1
+  #define y_over_chemical_output_stack -1
+  #define z2_on_chemical_stack_at_whatever_height -1
+
+  #define x_over_cell_plate_after_transfer -1
+  #define y_over_cell_plate_after_transfer -1
+  #define cell_plate_on_base -1
+  #define x_over_pin_cell_output_stack -1
+  #define y_over_cell_output_stack -1
+  #define z2_on_cell_stack_at_whatever_height -1
+  
   // chemical stack
   if (stack){
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_plate, y_over_chemical_plate, 0, chemical_plate_on_base);
+    move_to_coordinate_x_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, 0, chemical_plate_on_base);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_plate, y_over_chemical_plate, 0, 0);
+    move_to_coordinate_z_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, 0, 0);
     // Move to pin transfer area
     move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, 0, z2_on_chemical_stack_at_whatever_height);
     open_gripper();
@@ -461,11 +489,11 @@ void put_onto_stack(int stack, int height_to_put_on){
   else{
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_cell_plate, y_over_cell_plate, 0, cell_plate_on_base);
+    move_to_coordinate_x_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, 0, cell_plate_on_base);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_cell_plate, y_over_cell_plate, 0, 0);
+    move_to_coordinate_z_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, 0, 0);
     // Move to pin transfer area
     move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, 0, z2_on_cell_stack_at_whatever_height);
     open_gripper();
@@ -475,24 +503,39 @@ void put_onto_stack(int stack, int height_to_put_on){
 
 // TODO
 void do_wash(short wash_step){
+
+  #define pintool_into_solution -1
+  
+  #define x_over_solution_1 -1
+  #define y_over_solution_1 -1
+
+  #define x_over_solution_2 -1
+  #define y_over_solution_2 -1
+
+  #define x_over_solution_3 -1
+  #define y_over_solution_3 -1
+
+
+  #define time_in_solution_ms -1
+  
   // Solution 1
   if(wash_step == 1){
     // Move to Solution 1
-    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, z2_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, pintool_into_solution,0);
     delay(time_in_solution_ms);
     move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, 0, 0);
   }
   // Solution 2
   else if(wash_step == 2){
     // Move to Solution 2
-    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, z2_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, pintool_into_solution,0);
     delay(time_in_solution_ms);
     move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, 0, 0);   
   }
   // Solution 3
   else if(wash_step == 3){
     // Move to Solution 3
-    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, z2_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, pintool_into_solution,0);
     delay(time_in_solution_ms);
     move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, 0, 0); 
   }
@@ -525,6 +568,11 @@ void heat_off(){
 // WORKS
 // Allows fan and hearter to draw from power supply
 void do_fan_and_heat(int drying_time_ms){
+
+  #define x_over_fan -1
+  #define y_over_fan -1
+  #define pin_tool_over_fan -1
+  
   // Move pin tool over the fan
   move_to_coordinate_x_first(x_over_fan, y_over_fan, pin_tool_over_fan, 0);
   fan_on();
@@ -540,6 +588,16 @@ void do_fan_and_heat(int drying_time_ms){
 // Perform a single pin transfer and bring the pin back to its starting position.
 void do_pin_transfer(long pin_depth){
 
+  #define x_over_pin_transfer_chemical_area -1
+  #define y_over_pin_transfer_chemical_area -1
+
+  #define time_for_full_absorption_of_chemicals_in_ms -1
+  #define time_for_full_transfer_of_chemicals_in_ms -1
+
+  #define y_over_pin_transfer_cell_area -1
+  
+  
+
   long depth = convert_mm_to_steps(pin_depth);
 
   // Move to chemical plate to absorb chemicals in pin tool also dipping pin tool in chemical plate
@@ -550,7 +608,7 @@ void do_pin_transfer(long pin_depth){
   move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, 0,0);
   // Moving pin tool to cell plate and transfer chemicals to cells
   move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, depth, 0);
-  delay(time_for_full_transfer_of_chemicals_in_ms)
+  delay(time_for_full_transfer_of_chemicals_in_ms);
   // Moving pin tool out of cell plate
   move_to_coordinate_z_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, 0,0);
 }
@@ -568,7 +626,7 @@ void wash_pin_tool(boolean * wash_steps){
 
 // TODO
 // TEST
-void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
+void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps_input_stack, int height_of_next_plate_in_steps_output_stack){
   // Chemical stack
    take_from_stack(true, height_of_next_plate_in_steps_input_stack);
    // Cell stack
@@ -585,16 +643,21 @@ void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of
 //void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int drying_time){/
 void run_all_cycles(boolean *wash_steps, short num_plates, int pin_depth ){
 
+  #define drying_time -1
+
    
   double height_of_stack = (num_plates * plate_height_in_mm);
-  double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
+  // NEED TO DETERMINE THESE
+  double height_of_next_plate_in_steps_input_stack = convert_mm_to_steps(height_of_stack);
+  double height_of_next_plate_in_steps_output_stack;
+  
 
   for(int i = 0; i < num_plates; i++){
     
-    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
+    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_in_steps_input_stack, height_of_next_plate_in_steps_output_stack);
 
     // Update where the next plate is located at.
-    height_of_next_plate_to_grab -= plate_height_in_steps;
+//    height_of_next_plate_to_grab -= plate_height_in_steps;
   }
 }
 
@@ -1168,7 +1231,7 @@ void run_startup(){
   Serial.begin(9600);
 
   // Initialize LCD
-  configure_LCD();
+  configure_lcd();
 
   // Display startup screen
   // 0 -> startup screen
@@ -1179,10 +1242,6 @@ void run_startup(){
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
-
-  
-  // Add stepper motor objects to MultiStepper object
-  add_all_steppers_to_manager();
 
   // Find reference positions
   calibrate_motors();
@@ -1197,7 +1256,7 @@ void setup() {
 void loop() {
   int num_plates;
   int depth;
-  bool steps[3];	
+  bool steps[3];  
   while (true)
   {
     plateNumberSetup();
@@ -1212,7 +1271,7 @@ void loop() {
   tft.fillScreen(BLACK);
   progressScreen(0, "Starting...");
 
-  run_all_cycles();
+  run_all_cycles(steps,num_plates,depth );
 
   redo();
 }

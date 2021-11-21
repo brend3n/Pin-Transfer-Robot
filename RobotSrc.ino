@@ -346,8 +346,9 @@ void gripper_movement_test(){
 
 // Used for returning the absolute coordinates of a certain position
 void get_absolute_positions(){ 
-  int val;
 
+
+  int val;
 
   Serial.println("Press x limit switch to toggle gripper");
   Serial.println("Press the y limit switch to begin calibration");
@@ -382,7 +383,6 @@ void get_absolute_positions(){
   motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
-  
   
   // Print the coordinate from where the motor started
   Serial.println("X: " + String(x_start) + "\nY: " + String(y_start) + "\nZ1: " + String(z1_start) + "\nZ2: " + String(z2_start));
