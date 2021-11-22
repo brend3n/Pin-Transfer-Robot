@@ -393,6 +393,36 @@ void get_absolute_positions(){
   motor_z2.runToNewPosition(z2_start);
 }
 
+
+void unstack(int num_plates, int offset, int steps_until_last_plate){
+	int grab_height += steps_until_last_plate + offset;
+	
+	long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+	long x_start = calibrate_offset(&gantry , x_switch, -1);
+	
+	
+	gantry.setSpeed(SPEED_GANTRY);
+    gantry.runToNewPosition(x_start);
+
+	for(int i =0 ; i < num_plates; i++){
+	
+		motor_z2.setSpeed(SPEED_Z);
+		motor_z2.runToNewPosition(grab_height);
+		gripper(CLOSE, servo);
+		
+		gantry.setSpeed(SPEED_X);
+		gantry.runToNewPosition(motor_gantry.currentPosition() + 500);
+		gripper(OPEN, servo);
+		
+		gantry.setSpeed(SPEED_X);
+		gantry.runToNewPosition(x_start);		
+		
+		
+		grab_height += offset;
+	}
+}
+
+
 void move_y(){
   motor_y.setSpeed(100);
   while(true){
