@@ -116,6 +116,29 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 #define heat_and_fan_delay    5000
 
+
+// Pin tool only
+long solution_1 {};
+long solution_2 {};
+long solution_3 {};
+
+long fan {};
+
+// Gripper only
+long cell_stack_1_gripper {};
+long cell_stack_2_gripper {};
+
+long chemical_stack_1 {};
+long chemical_stack_2 {};
+
+// Pin tool and gripper
+long cell_area_pintool {};
+long cell_area_gripper {};
+
+long chemical_area_pintool {};
+long chemical_area_gripper {};
+
+
 /*###########################################################################################*/
 
 // Instantiating motor driver objects
@@ -139,8 +162,6 @@ long convert_mm_to_steps(float mm){
 void print_current_position(){
     Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
 }
-
-
 
 // ! Probaby not even used so get rid of this shit ... maybe
 // Computes the direction the motor is moving in
@@ -427,6 +448,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   
   // chemical stack
   if (stack){
+
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, 0, height_to_pick_from);
@@ -440,6 +462,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   }
   // cell stack
   else{
+
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, 0, height_to_pick_from);
