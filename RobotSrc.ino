@@ -45,6 +45,11 @@
 #define SPEED_Y      100
 
 
+#define STACKED_PLATE_GRIP_HEIGHT_OFFSET 319
+
+#define STEPS_UNTIL_BOTTOM_OF_STACK -2090
+
+
 
 // Switch variables
 int switch_state;
@@ -127,7 +132,12 @@ void setup(){
 //   delay(3000);
    
   //  gripper_movement_test();
+  
     servo.write(OPEN);
+    
+    
+    // 3 is the number of plates that we are unstacking
+    unstack(3, STACKED_PLATE_GRIP_HEIGHT_OFFSET, STEPS_UNTIL_BOTTOM_OF_STACK);
 }
 
 
@@ -394,32 +404,35 @@ void get_absolute_positions(){
 }
 
 
-void unstack(int num_plates, int offset, int steps_until_last_plate){
-	int grab_height += steps_until_last_plate + offset;
-	
-	long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
-	long x_start = calibrate_offset(&gantry , x_switch, -1);
-	
-	
-	gantry.setSpeed(SPEED_GANTRY);
+void unstack(int num_plates, int offset,int steps_until_last_plate){
+    int grab_height = steps_until_last_plate + offset * (num_plates - 1);
+
+    long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+    long x_start = calibrate_motor(&gantry , x_switch, -1);
+
+
+    gantry.setSpeed(SPEED_GANTRY);
     gantry.runToNewPosition(x_start);
 
-	for(int i =0 ; i < num_plates; i++){
-	
-		motor_z2.setSpeed(SPEED_Z);
-		motor_z2.runToNewPosition(grab_height);
-		gripper(CLOSE, servo);
-		
-		gantry.setSpeed(SPEED_X);
-		gantry.runToNewPosition(motor_gantry.currentPosition() + 500);
-		gripper(OPEN, servo);
-		
-		gantry.setSpeed(SPEED_X);
-		gantry.runToNewPosition(x_start);		
-		
-		
-		grab_height += offset;
-	}
+    for(int i = 0 ; i < num_plates; i++){
+
+        motor_z2.setSpeed(SPEED_Z);
+        motor_z2.runToNewPosition(grab_height);
+        gripper(CLOSE, servo);
+
+        motor_z2.setSpeed(SPEED_Z2);
+        motor_z2.move(500);
+        motor_z2.runToPosition();
+
+        gantry.setSpeed(SPEED_GANTRY);
+        gantry.runToNewPosition(gantry.currentPosition() + 500);
+        gripper(OPEN, servo);
+
+        gantry.setSpeed(SPEED_GANTRY);
+        gantry.runToNewPosition(x_start);
+
+        grab_height -= offset;
+    }
 }
 
 
