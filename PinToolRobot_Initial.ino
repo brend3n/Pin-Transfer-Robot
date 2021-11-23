@@ -374,10 +374,10 @@ void move_to_coordinate_x_first(long x, long y, long z1, long z2){
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
 
-  gantry.runToNewPosition(coordinates[0]);
-  motor_y.runToNewPosition(coordinates[1]);
-  motor_z1.runToNewPosition(coordinates[2]);
-  motor_z2.runToNewPosition(coordinates[3]);
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
   
 }
 // Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
@@ -389,10 +389,10 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
 
-  motor_z1.runToNewPosition(coordinates[3]);
-  motor_z2.runToNewPosition(coordinates[2]);
-  gantry.runToNewPosition(coordinates[0]);
-  motor_y.runToNewPosition(coordinates[1]);
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
 }
 
 
