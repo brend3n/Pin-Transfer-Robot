@@ -6,10 +6,78 @@
 #include <Servo.h>
 
 // LCD
-// #include <Adafruit_TFTLCD.h>
+#include <Adafruit_TFTLCD.h>
 #include <Adafruit_GFX.h>
-#include <MCUFRIEND_kbv.h>
 #include <TouchScreen.h>
+
+// Bluetooth
+#include <AltSoftSerial.h>
+
+struct Ptr_Ble {
+  AltSoftSerial bleSerial;
+  byte state;
+  byte plate_number;
+  byte num_plates;
+  enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, WASHED, DRIED, SRCLOADED, RCPLOADED, DONE};
+
+  Ptr_Ble() {
+    state = CALIBRATING;
+    plate_number = 0;
+    num_plates = -1;
+  }
+}
+
+// Set this when the LCD gives it to you
+void Ptr_Ble::set_num_plates(int val) {
+  num_plates = val;
+}
+
+// helper
+// update according to the states
+// shown in the enum
+void Ptr_Ble::update_state() {
+  if (plate_number == num_plates) {
+    if (state == RCPLOADED) {
+      state = DONE;
+    } else if (state != DONE) {
+      state++;
+    }
+
+    return;
+  }
+
+  if (state == RCPLOADED) {
+    if (plate_number == num_plates) {
+      state = DONE;
+      return;
+    }
+
+    plate_number++;
+    state = SRCUNLOADED;
+    return;
+  }
+
+  state++;
+}
+
+// for debugging purposes
+void Ptr_Ble::print_info() {
+  Serial.print("num_plates:"); Serial.print(num_plates); Serial.print(" state:"); Serial.println(state);
+}
+
+// helper
+void Ptr_Ble::send_data() {
+  bleSerial.write(plate_number * 10 + state);
+  // Just for good measure.
+  delay(100);
+}
+
+void Ptr_Ble:update_and_send() {
+  update_state();
+  send_data();
+}
+
+Ptr_Ble ptr_ble;
 
 /*  
   A Phallic Haiku
@@ -41,7 +109,7 @@
 /*###########################################################################################*/
 /*Servo Pins*/
 
-#define SERVO_PIN 10
+#define SERVO_PIN 9
 
 // Servo constants
 #define CLOSE 50
@@ -49,32 +117,19 @@
 
 /*###########################################################################################*/
 /* LCD Pin Definitions*/
-
-// Touch Screen Pins
 #define YP A3  
 #define XM A2  
 #define YM 9   
 #define XP 8 
-
-// LCD Pins
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define LCD_CS A3
 #define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 #define LCD_RESET A4
-
-// HEX color defines
+Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define BLACK 0x0000
 #define WHITE 0xFFFF
-
-
-// 13 on the UNO myabe something different on the mega2560
-#define LCD_CLOCK 13
-
-// Instantiate touch screen and lcd objects
-TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-// Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
-MCUFRIEND_kbv tft;
 
 /*###########################################################################################*/
 /*Other Pin Definitions*/
@@ -92,16 +147,20 @@ MCUFRIEND_kbv tft;
 /*###########################################################################################*/
 /*CONTSTANTS*/
 
+
 // Motor speeds
 #define SPEED_GANTRY 100
-#define SPEED_Y      100
-#define SPEED_Z      100
+#define SPEED_Y 100
+#define SPEED_Z 100
+
 #define SPEED_Z1     100
 #define SPEED_Z2     100
 
+// Number of steps in a single step of the motor
+#define NUM_STEP   100
 
 // Speed of all the motors
-#define MAX_SPEED             100
+#define MAX_SPEED             500
 #define MAX_ACCELERATION      1000
 #define MAX_RUN_DISTANCE      100
 
@@ -115,34 +174,57 @@ MCUFRIEND_kbv tft;
 
 #define heat_and_fan_delay    5000
 
-#define steps_per_mm 28 
+// Change to false to do polling
+#define INTERRUPTS_ENABLED false
 
+/*###########################################################################################*/
+/*Position Variables*/
 
-// Pin tool only
-long solution_1 {};
-long solution_2 {};
-long solution_3 {};
+// ! Can be optimized further to save space
+short curr_dirx1;
+int   last_posx1;
+short last_dirx1;
 
-long fan {};
+short curr_dirx2;
+int   last_posx2;
+short last_dirx2;
 
-// Gripper only
-// Input
-long cell_stack_1 {};
-// Output
-long cell_stack_2 {};
+// Gantry
+// Used for the gantry (2 x-axis linear actuators together)
+short curr_dir_gantry;
+int   last_pos_gantry;
+short last_dir_gantry;
 
-// Input
-long chemical_stack_1 {};
-// Output
-long chemical_stack_2 {};
+short curr_diry;
+int   last_posy;
+short last_diry;
 
-// Pin tool and gripper
-long cell_area_pintool {};
-long cell_area_gripper {};
+short curr_dirz1;
+int   last_posz1;
+short last_dirz1;
 
-long chemical_area_pintool {};
-long chemical_area_gripper {};
+short curr_dirz2;
+int   last_posz2;
+short last_dirz2;
 
+// Bounds of each linear actuator
+long x1_right = -1;
+long x1_left  = -1;
+
+long x2_left  = -1;
+long x2_right = -1;
+
+long gantry_left  = -1;
+long gantry_right = -1;
+
+long y_left   = -1;
+long y_right  = -1;
+
+long z1_lower  = -1;
+long z1_upper  = -1;
+
+long z2_lower  = -1;
+long z2_upper  = -1;
 
 /*###########################################################################################*/
 
@@ -159,9 +241,6 @@ Servo servo = Servo();
 // ! NEED
 // Converts a distance in mm to steps
 long convert_mm_to_steps(float mm){
-
-  // 28 steps per mm
-  // 319 offset per plate
   long steps = mm * steps_per_mm;
   return steps;
 }
@@ -169,6 +248,37 @@ long convert_mm_to_steps(float mm){
 // Prints the current position of each motor to the serial for testing and getting position values for hard coding.
 void print_current_position(){
     Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
+}
+
+
+
+// ! Probaby not even used so get rid of this shit ... maybe
+// Computes the direction the motor is moving in
+/* 
+  Returns:
+     1: Motor moving right (clockwise)
+    -1: Motor moving left  (counter clockwise)
+     0: Motor not moving   (static)
+
+
+  State                     Condition
+
+  Moving Right returns 1:   new_pos > last_pos
+  Moving Left returns -1:   new_pos < last_pos  
+  Not Moving returns 0:     new_pos = last_pos
+*/
+// ? Might not be necessary
+// TEST
+// Should be working but need to test
+int curr_direction(int last_pos, int new_pos){
+  if (new_pos > last_pos){
+
+    return 1;
+  }else if(new_pos < last_pos){
+    return -1;
+  }else{
+    return 0;
+  }
 }
 
 // WORKING
@@ -191,6 +301,7 @@ void set_pins(){
 // Configure each motor
 void configure_motors(){
 
+
     // Set maxmium speeds
     gantry.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
@@ -204,6 +315,8 @@ void configure_motors(){
     motor_z2.setAcceleration(MAX_ACCELERATION);
 }
 
+
+
 // WORKS
 // Oscillates between the two bounds of a linear actuator
 void oscillate(AccelStepper *motor, long left, long right){
@@ -215,6 +328,7 @@ void oscillate(AccelStepper *motor, long left, long right){
     motor->runToPosition();
   }
 }
+
 
 // Calibrates a single motor given by &motor and a limit switch
 long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
@@ -231,6 +345,8 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
         motor->runSpeed();
     }
 
+    // ERASE THIS LATER OR ELSE I WILL KILL A MANATEE WITH MY BARE TEETH AND GIVE THE MANATEE TAIL TO MY FRIEND ADOMININC AND THEN I WILL SAY WPAJ THERE BUDYDDYN WHY ARENT YPU LOOKING AT ME 
+    delay(0);
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
@@ -254,35 +370,9 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 }
 
 // Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
+
 // void gripper_movement_test(){ 
 void calibrate_motors(){ 
-
-  Serial.println("Calibrating Z1");
-  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
-
-  Serial.println("Calibrating Z2");
-  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
-
-  Serial.println("Calibrating gantry");
-  long x_start = calibrate_motor(&gantry , x_switch, -1);
-
-  Serial.println("Calibrating Y");
-  long y_start = calibrate_motor(&motor_y, y_switch, -1);
- 
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-  
-
-  gantry.runToNewPosition(x_start);
-  motor_y.runToNewPosition(y_start);
-  motor_z1.runToNewPosition(z1_start);
-  motor_z2.runToNewPosition(z2_start);
-}
-
-// Used for returning the absolute coordinates of a certain position
-void get_absolute_positions(){ 
   int val;
 
   gripper(OPEN, servo);
@@ -316,15 +406,13 @@ void get_absolute_positions(){
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
   
-  
-  // Print the coordinate from where the motor started
-  Serial.println("X: " + String(x_start) + "\nY: " + String(y_start) + "\nZ1: " + String(z1_start) + "\nZ2: " + String(z2_start));
 
   gantry.runToNewPosition(x_start);
   motor_y.runToNewPosition(y_start);
   motor_z1.runToNewPosition(z1_start);
   motor_z2.runToNewPosition(z2_start);
 }
+
 
 // Test code for verifying limit switches are working
 void test_limit_switches(){
@@ -371,192 +459,38 @@ void close_gripper(){
 
 /*###########################################################################################*/
 /*Robot Functions*/
-
-// Moves each motor to a given position starting with the x-axis
-void move_to_coordinate_x_first(long x, long y, long z1, long z2){
-// void move_to_coordinate_x_first(long *coordinates){
-
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-
-  gantry.runToNewPosition(x);
-  motor_y.runToNewPosition(y);
-  motor_z1.runToNewPosition(z1);
-  motor_z2.runToNewPosition(z2);
-  
-}
-// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
-void move_to_coordinate_z_first(long x, long y, long z1, long z2){
-// void move_to_coordinate_z_first(long *coordinates){
-
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-
-  motor_z1.runToNewPosition(z1);
-  motor_z2.runToNewPosition(z2);
-  gantry.runToNewPosition(x);
-  motor_y.runToNewPosition(y);
-}
-
-
-void move_to_xy(long *xy_coordinate){
-
-}
-
-void raise_pintool(){
-
-}
-
-void raise_gripper(){
-
-}
-
 // TODO
 // Take plate from a stack
-// stack ==  
-//    false for cell
-//    true for chemical
-void take_from_stack(boolean stack, int height_to_pick_from){
+void take_from_stack(int stack, int height_to_pick_from){
 
-  #define x_over_chemical_stack -1
-  #define y_over_chemical_stack -1
-  #define x_over_pin_transfer_area -1
-  #define y_over_pin_transfer_for_chemical -1
-  #define z2_on_chemical_area_on_workspace -1
-
-  #define x_over_cell_stack -1
-  #define y_over_cell_stack -1
-  #define x_over_pin_transfer_area -1
-  #define y_over_pin_transfer_for_cell -1
-  #define z2_on_cell_area_on_workspace -1
-  
-  // chemical stack
-  if (stack){
-
-    // ! Might have to move the z2 motor up to -100 before calling the function below
-    // Position gripper over stack
-    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, -100, height_to_pick_from);
-    // move_to_coordinate_x_first(chemical_stack_1);
-    close_gripper();
-    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
-    // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, -100, -100);
-    // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, z2_on_chemical_area_on_workspace);
-    open_gripper();
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, -100);
-  }
-  // cell stack
-  else{
-
-    // ! Might have to move the z2 motor up to -100 before calling the function below 
-    // Position gripper over stack
-    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, -100, height_to_pick_from);
-    close_gripper();
-    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
-    // Moving up gripper
-    move_to_coordinate_z_first(x_over_cell_stack, y_over_cell_stack, -100, -100);
-    // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, z2_on_cell_area_on_workspace);
-    open_gripper();
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, -100);
-  }
 }
 
 // TODO
 // Put a plate onto a stack
 void push_onto_stack(int stack, int height_to_put_on){
 
-  #define x_over_chemical_plate_after_transfer -1
-  #define y_over_chemical_plate_after_transfer -1
-  #define chemical_plate_on_base -1
-  #define x_over_pin_chemical_output_stack -1
-  #define y_over_chemical_output_stack -1
-  #define z2_on_chemical_stack_at_whatever_height -1
-
-  #define x_over_cell_plate_after_transfer -1
-  #define y_over_cell_plate_after_transfer -1
-  #define cell_plate_on_base -1
-  #define x_over_pin_cell_output_stack -1
-  #define y_over_cell_output_stack -1
-  #define z2_on_cell_stack_at_whatever_height -1
-  
-
-
-  // chemical stack
-  if (stack){
-    // Position gripper over stack
-    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, chemical_plate_on_base);
-    close_gripper();
-    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
-    // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, -100);
-    // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, z2_on_chemical_stack_at_whatever_height);
-    open_gripper();
-    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, -100);
-  }
-  // cell stack
-  else{
-    // Position gripper over stack
-    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, cell_plate_on_base);
-    close_gripper();
-    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
-    // Moving up gripper
-    move_to_coordinate_z_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, -100);
-    // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, z2_on_cell_stack_at_whatever_height);
-    open_gripper();
-    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, -100);
-  }
 }
 
 // TODO
 void do_wash(short wash_step){
 
-  #define pintool_into_solution -1
-  
-  #define x_over_solution_1 -1
-  #define y_over_solution_1 -1
 
-  #define x_over_solution_2 -1
-  #define y_over_solution_2 -1
-
-  #define x_over_solution_3 -1
-  #define y_over_solution_3 -1
-
-
-  #define time_in_solution_ms -1
-  
   // Solution 1
   if(wash_step == 1){
     // Move to Solution 1
-    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, pintool_into_solution, -100);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, -100, -100);
+    dip_pin_tool();
   }
   // Solution 2
   else if(wash_step == 2){
     // Move to Solution 2
-    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, pintool_into_solution, -100);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, -100, -100);   
+    dip_pin_tool();
   }
   // Solution 3
   else if(wash_step == 3){
     // Move to Solution 3
-    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, pintool_into_solution, -100);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, -100, -100); 
+    dip_pin_tool();
   }
+
 }
 
 // WORKS
@@ -586,101 +520,71 @@ void heat_off(){
 // WORKS
 // Allows fan and hearter to draw from power supply
 void do_fan_and_heat(int drying_time_ms){
-
-  #define x_over_fan -1
-  #define y_over_fan -1
-  #define pin_tool_over_fan -1
-  
-  // Move pin tool over the fan
-  move_to_coordinate_x_first(x_over_fan, y_over_fan, pin_tool_over_fan, -100);
   fan_on();
   heat_on();
   delay(drying_time_ms);
   heat_off();
   fan_off();
   delay(drying_time_ms);
-  move_to_coordinate_x_first(x_over_fan, y_over_fan, -100, -100);
 }
 
 // TODO
 // Perform a single pin transfer and bring the pin back to its starting position.
-void do_pin_transfer(long pin_depth){
+void do_pin_transfer(){
 
-  #define x_over_pin_transfer_chemical_area -1
-  #define y_over_pin_transfer_chemical_area -1
-
-  #define time_for_full_absorption_of_chemicals_in_ms -1
-  #define time_for_full_transfer_of_chemicals_in_ms -1
-
-  #define y_over_pin_transfer_cell_area -1
-  
-
-  long depth = convert_mm_to_steps(pin_depth);
-
-  // Move to chemical plate to absorb chemicals in pin tool also dipping pin tool in chemical plate
-  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_chemical_area, depth, -100);
-  delay(time_for_full_absorption_of_chemicals_in_ms);
-
-  // Moving pin tool out of chemical plate
-  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, -100, -100);
-  // Moving pin tool to cell plate and transfer chemicals to cells
-  move_to_coordinate_x_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, depth, -100);
-  delay(time_for_full_transfer_of_chemicals_in_ms);
-  // Moving pin tool out of cell plate
-  move_to_coordinate_z_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, -100, -100);
 }
 
 // TODO
 // Wash the pin tool.
-void wash_pin_tool(boolean * wash_steps){
+void wash_pin_tool(boolean [] wash_steps){
   // 1. Move pin tool to wash step linear actuator
   for(int wash_step = 0; wash_step < 3; wash_step++){
     if(wash_steps[wash_step]){
       do_wash(wash_step);
     }
   }
+
+}
+
+// TODO
+// Uses the fan and heater to dry the pin tool. 
+void dry_pin_tool(){
+
+  // 1. Move pin tool over to fan and heat
+  do_fan_and_heat(heat_and_fan_delay);
+  // 2. Move pin tool back to do pin transfer
 }
 
 // TODO
 // TEST
-void do_cycle(boolean *wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps_input_stack, int height_of_next_plate_in_steps_output_stack){
-  // Chemical stack
-   take_from_stack(true, height_of_next_plate_in_steps_input_stack);
-   // Cell stack
-   take_from_stack(false, height_of_next_plate_in_steps_input_stack);
-   do_pin_transfer(pin_depth);
+void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
+   take_from_stack();
+   do_pin_transfer();
    wash_pin_tool(wash_steps);
-   do_fan_and_heat(drying_time);
-   push_onto_stack(true, height_of_next_plate_in_steps_output_stack);
-   push_onto_stack(false, height_of_next_plate_in_steps_output_stack);
+   dry_pin_tool();
+   push_onto_stack();
 }
 
 // TODO
 // TEST
 //void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int drying_time){/
-void run_all_cycles(boolean *wash_steps, short num_plates, int pin_depth ){
-
-  #define drying_time -1
+void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
    
   double height_of_stack = (num_plates * plate_height_in_mm);
-  // NEED TO DETERMINE THESE
-  double height_of_next_plate_in_steps_input_stack = convert_mm_to_steps(height_of_stack);
-  double height_of_next_plate_in_steps_output_stack;
-  
+  double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
 
   for(int i = 0; i < num_plates; i++){
     
-    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_in_steps_input_stack, height_of_next_plate_in_steps_output_stack);
+    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
 
     // Update where the next plate is located at.
-   height_of_next_plate_to_grab -= plate_height_in_steps;
+    height_of_next_plate_to_grab -= plate_height_in_steps;
   }
 }
 
 /*###########################################################################################*/
 /*LCD Functions*/
-
 // TODO: use the correct pin number
 // LCD configurations on startup
 void configure_lcd()
@@ -688,10 +592,9 @@ void configure_lcd()
   tft.reset();
   uint16_t identifier = tft.readID();
   tft.begin(identifier);
-  tft.setRotation(2);
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
-  pinMode(LCD_CLOCK, OUTPUT);
+  pinMode(13, OUTPUT);
 }
 
 
@@ -767,9 +670,9 @@ int plateNumberInput()
   int plateNum = -1;
   while (true)
   {
-    digitalWrite(LCD_CLOCK, HIGH);
+    digitalWrite(13, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(LCD_CLOCK, LOW);
+    digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -866,6 +769,9 @@ int plateNumberInput()
       }
     }
   }
+
+  ptr_ble.set_num_plates(plateNum);
+
   return plateNum;
 }
 
@@ -928,9 +834,9 @@ int depthInput()
   int x_cursor = 115;
   while (true)
   {
-    digitalWrite(LCD_CLOCK, HIGH);
+    digitalWrite(13, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(LCD_CLOCK, LOW);
+    digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1081,9 +987,9 @@ void washStepInput(bool * steps)
       
   while (true)
   {
-    digitalWrite(LCD_CLOCK, HIGH);
+    digitalWrite(13, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(LCD_CLOCK, LOW);
+    digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1181,9 +1087,9 @@ bool paramCheck(int plateNum, int depth, bool * steps)
 
   while (true)
   {
-    digitalWrite(LCD_CLOCK, HIGH);
+    digitalWrite(13, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(LCD_CLOCK, LOW);
+    digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1204,12 +1110,12 @@ bool paramCheck(int plateNum, int depth, bool * steps)
 // Show pin tool operation progress
 void progressScreen(int plateNum, String location)
 {
-  tft.fillRect(154, 115, 30, 30, BLACK);
-  tft.fillRect(130, 155, 120, 30, BLACK);
-  tft.setCursor(70, 120);
+  tft.fillRect(134, 115, 30, 30, BLACK);
+  tft.fillRect(160, 155, 100, 30, BLACK);
+  tft.setCursor(50, 120);
   tft.print("Plate #");
   tft.print(plateNum);
-  tft.setCursor(20, 160);
+  tft.setCursor(50, 160);
   tft.print("Location: ");
   tft.print(location);
 }
@@ -1227,9 +1133,9 @@ void redo()
 
   while (true)
   {
-    digitalWrite(LCD_CLOCK, HIGH);
+    digitalWrite(13, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(LCD_CLOCK, LOW);
+    digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1242,6 +1148,7 @@ void redo()
   }
 }
 
+
 /*###########################################################################################*/
 
 void run_startup(){
@@ -1249,7 +1156,7 @@ void run_startup(){
   Serial.begin(9600);
 
   // Initialize LCD
-  configure_lcd();
+  configure_LCD();
 
   // Display startup screen
   // 0 -> startup screen
@@ -1261,6 +1168,10 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
+  
+  // Add stepper motor objects to MultiStepper object
+  add_all_steppers_to_manager();
+
   // Find reference positions
   calibrate_motors();
 
@@ -1268,20 +1179,17 @@ void run_startup(){
 
 void setup() {
   run_startup();
-
 }
 
 void loop() {
-  int num_plates;
-  int depth;
-  bool steps[3];  
   while (true)
   {
     plateNumberSetup();
-    num_plates = plateNumberInput();
+    int num_plates = plateNumberInput();
     depthSetup();
-    depth = depthInput();
+    int depth = depthInput();
     washStepSetup();
+    bool steps[3];
     washStepInput(steps);
     if (paramCheck(num_plates, depth, steps))
       break;
@@ -1289,17 +1197,16 @@ void loop() {
   tft.fillScreen(BLACK);
   progressScreen(0, "Starting...");
 
-  run_all_cycles(steps,num_plates,depth );
+  // run_all_cycles();
 
   redo();
 }
 
-/*FLOW OF CONTROL FOR A PIN TRANSFER*/
 /**
  * 
  * 1. Set up
  * Loop:
-     //// 1. LCD input from user
+     1. LCD input from user
   * Cycle:
   *    2. take a plate from the cell plate stack
   *        - Position gripper over stack
@@ -1359,4 +1266,16 @@ void loop() {
   *     - if so, go back to the top of the loop to get information -> break out of infinite loop
   *     - otherwise, stay in infinite loop waiting
   * 
+  *
+  * 
+  * 
+ *           
+ *          
+ *    
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
  */
