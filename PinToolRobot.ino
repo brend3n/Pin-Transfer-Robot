@@ -472,16 +472,152 @@ void close_gripper(){
 
 /*###########################################################################################*/
 /*Robot Functions*/
+
+// Moves each motor to a given position starting with the x-axis
+void move_to_coordinate_x_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_x_first(long *coordinates){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  
+}
+// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
+void move_to_coordinate_z_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_z_first(long *coordinates){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+}
+
+
+void move_to_xy(long *xy_coordinate){
+
+}
+
+void raise_pintool(){
+
+}
+
+void raise_gripper(){
+
+}
+
 // TODO
 // Take plate from a stack
-void take_from_stack(int stack, int height_to_pick_from){
+// stack ==  
+//    false for cell
+//    true for chemical
+void take_from_stack(boolean stack, int height_to_pick_from){
 
+  #define x_over_chemical_stack -1
+  #define y_over_chemical_stack -1
+  #define x_over_pin_transfer_area -1
+  #define y_over_pin_transfer_for_chemical -1
+  #define z2_on_chemical_area_on_workspace -1
+
+  #define x_over_cell_stack -1
+  #define y_over_cell_stack -1
+  #define x_over_pin_transfer_area -1
+  #define y_over_pin_transfer_for_cell -1
+  #define z2_on_cell_area_on_workspace -1
+  
+  // chemical stack
+  if (stack){
+
+    // ! Might have to move the z2 motor up to -100 before calling the function below
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, -100, height_to_pick_from);
+    // move_to_coordinate_x_first(chemical_stack_1);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, -100, -100);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, z2_on_chemical_area_on_workspace);
+    open_gripper();
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, -100);
+  }
+  // cell stack
+  else{
+
+    // ! Might have to move the z2 motor up to -100 before calling the function below 
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, -100, height_to_pick_from);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_cell_stack, y_over_cell_stack, -100, -100);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, z2_on_cell_area_on_workspace);
+    open_gripper();
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, -100);
+  }
 }
 
 // TODO
 // Put a plate onto a stack
 void push_onto_stack(int stack, int height_to_put_on){
 
+  #define x_over_chemical_plate_after_transfer -1
+  #define y_over_chemical_plate_after_transfer -1
+  #define chemical_plate_on_base -1
+  #define x_over_pin_chemical_output_stack -1
+  #define y_over_chemical_output_stack -1
+  #define z2_on_chemical_stack_at_whatever_height -1
+
+  #define x_over_cell_plate_after_transfer -1
+  #define y_over_cell_plate_after_transfer -1
+  #define cell_plate_on_base -1
+  #define x_over_pin_cell_output_stack -1
+  #define y_over_cell_output_stack -1
+  #define z2_on_cell_stack_at_whatever_height -1
+  
+
+
+  // chemical stack
+  if (stack){
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, chemical_plate_on_base);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, -100);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, z2_on_chemical_stack_at_whatever_height);
+    open_gripper();
+    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, -100);
+  }
+  // cell stack
+  else{
+    // Position gripper over stack
+    // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
+    move_to_coordinate_x_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, cell_plate_on_base);
+    close_gripper();
+    // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
+    // Moving up gripper
+    move_to_coordinate_z_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, -100);
+    // Move to pin transfer area
+    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, z2_on_cell_stack_at_whatever_height);
+    open_gripper();
+    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, -100);
+  }
 }
 
 // TODO
