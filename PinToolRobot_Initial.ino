@@ -101,7 +101,7 @@ MCUFRIEND_kbv tft;
 
 
 // Speed of all the motors
-#define MAX_SPEED             500
+#define MAX_SPEED             100
 #define MAX_ACCELERATION      1000
 #define MAX_RUN_DISTANCE      100
 
