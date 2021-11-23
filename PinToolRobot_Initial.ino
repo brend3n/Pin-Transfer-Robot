@@ -40,7 +40,7 @@
 /*###########################################################################################*/
 /*Servo Pins*/
 
-#define SERVO_PIN 9
+#define SERVO_PIN 10
 
 // Servo constants
 #define CLOSE 50
@@ -90,7 +90,6 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 /*###########################################################################################*/
 /*CONTSTANTS*/
 
-
 // Motor speeds
 #define SPEED_GANTRY 100
 #define SPEED_Y      100
@@ -98,8 +97,6 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define SPEED_Z1     100
 #define SPEED_Z2     100
 
-// Number of steps in a single step of the motor
-#define NUM_STEP   100
 
 // Speed of all the motors
 #define MAX_SPEED             500
@@ -433,6 +430,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   // chemical stack
   if (stack){
 
+    // ! Might have to move the z2 motor up to -100 before calling the function below
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, -100, height_to_pick_from);
@@ -444,10 +442,12 @@ void take_from_stack(boolean stack, int height_to_pick_from){
     // Move to pin transfer area
     move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, z2_on_chemical_area_on_workspace);
     open_gripper();
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, -100);
   }
   // cell stack
   else{
 
+    // ! Might have to move the z2 motor up to -100 before calling the function below 
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, -100, height_to_pick_from);
@@ -458,6 +458,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
     // Move to pin transfer area
     move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, z2_on_cell_area_on_workspace);
     open_gripper();
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, -100);
   }
 }
 
@@ -479,6 +480,8 @@ void push_onto_stack(int stack, int height_to_put_on){
   #define y_over_cell_output_stack -1
   #define z2_on_cell_stack_at_whatever_height -1
   
+
+
   // chemical stack
   if (stack){
     // Position gripper over stack
