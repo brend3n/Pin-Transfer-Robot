@@ -125,10 +125,14 @@ long solution_3 {};
 long fan {};
 
 // Gripper only
-long cell_stack_1_gripper {};
-long cell_stack_2_gripper {};
+// Input
+long cell_stack_1 {};
+// Output
+long cell_stack_2 {};
 
+// Input
 long chemical_stack_1 {};
+// Output
 long chemical_stack_2 {};
 
 // Pin tool and gripper
@@ -163,35 +167,6 @@ void print_current_position(){
     Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
 }
 
-// ! Probaby not even used so get rid of this shit ... maybe
-// Computes the direction the motor is moving in
-/* 
-  Returns:
-     1: Motor moving right (clockwise)
-    -1: Motor moving left  (counter clockwise)
-     0: Motor not moving   (static)
-
-
-  State                     Condition
-
-  Moving Right returns 1:   new_pos > last_pos
-  Moving Left returns -1:   new_pos < last_pos  
-  Not Moving returns 0:     new_pos = last_pos
-*/
-// ? Might not be necessary
-// TEST
-// Should be working but need to test
-int curr_direction(int last_pos, int new_pos){
-  if (new_pos > last_pos){
-
-    return 1;
-  }else if(new_pos < last_pos){
-    return -1;
-  }else{
-    return 0;
-  }
-}
-
 // WORKING
 void set_pins(){
 
@@ -212,7 +187,6 @@ void set_pins(){
 // Configure each motor
 void configure_motors(){
 
-
     // Set maxmium speeds
     gantry.setMaxSpeed(MAX_SPEED);
     motor_y.setMaxSpeed(MAX_SPEED);
@@ -226,8 +200,6 @@ void configure_motors(){
     motor_z2.setAcceleration(MAX_ACCELERATION);
 }
 
-
-
 // WORKS
 // Oscillates between the two bounds of a linear actuator
 void oscillate(AccelStepper *motor, long left, long right){
@@ -239,7 +211,6 @@ void oscillate(AccelStepper *motor, long left, long right){
     motor->runToPosition();
   }
 }
-
 
 // Calibrates a single motor given by &motor and a limit switch
 long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
@@ -397,33 +368,47 @@ void close_gripper(){
 /*###########################################################################################*/
 /*Robot Functions*/
 
-
 // Moves each motor to a given position starting with the x-axis
-void move_to_coordinate_x_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_x_first(long x, long y, long z1, long z2){
+void move_to_coordinate_x_first(long *coordinates){
 
   motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
 
-  gantry.runToNewPosition(x);
-  motor_y.runToNewPosition(y);
-  motor_z1.runToNewPosition(z1);
-  motor_z2.runToNewPosition(z2);
+  gantry.runToNewPosition(coordinates[0]);
+  motor_y.runToNewPosition(coordinates[1]);
+  motor_z1.runToNewPosition(coordinates[2]);
+  motor_z2.runToNewPosition(coordinates[3]);
+  
+}
+// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
+// void move_to_coordinate_z_first(long x, long y, long z1, long z2){
+void move_to_coordinate_z_first(long *coordinates){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  motor_z1.runToNewPosition(coordinates[3]);
+  motor_z2.runToNewPosition(coordinates[2]);
+  gantry.runToNewPosition(coordinates[0]);
+  motor_y.runToNewPosition(coordinates[1]);
 }
 
-// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
-void move_to_coordinate_z_first(long x, long y, long z1, long z2){
 
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
+void move_to_xy(long *xy_coordinate){
 
-  motor_z1.runToNewPosition(z1);
-  motor_z2.runToNewPosition(z2);
-  gantry.runToNewPosition(x);
-  motor_y.runToNewPosition(y);
+}
+
+void raise_pintool(){
+
+}
+
+void raise_gripper(){
+
 }
 
 // TODO
@@ -431,7 +416,6 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
 // stack ==  
 //    false for cell
 //    true for chemical
- 
 void take_from_stack(boolean stack, int height_to_pick_from){
 
   #define x_over_chemical_stack -1
@@ -451,13 +435,14 @@ void take_from_stack(boolean stack, int height_to_pick_from){
 
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, 0, height_to_pick_from);
+    move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, -100, height_to_pick_from);
+    // move_to_coordinate_x_first(chemical_stack_1);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, 0, 0);
+    move_to_coordinate_z_first(x_over_chemical_stack, y_over_chemical_stack, -100, -100);
     // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, 0, z2_on_chemical_area_on_workspace);
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_chemical, -100, z2_on_chemical_area_on_workspace);
     open_gripper();
   }
   // cell stack
@@ -465,13 +450,13 @@ void take_from_stack(boolean stack, int height_to_pick_from){
 
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, 0, height_to_pick_from);
+    move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, -100, height_to_pick_from);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_cell_stack, y_over_cell_stack, 0, 0);
+    move_to_coordinate_z_first(x_over_cell_stack, y_over_cell_stack, -100, -100);
     // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, 0, z2_on_cell_area_on_workspace);
+    move_to_coordinate_x_first(x_over_pin_transfer_area, y_over_pin_transfer_for_cell, -100, z2_on_cell_area_on_workspace);
     open_gripper();
   }
 }
@@ -498,29 +483,29 @@ void push_onto_stack(int stack, int height_to_put_on){
   if (stack){
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, 0, chemical_plate_on_base);
+    move_to_coordinate_x_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, chemical_plate_on_base);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, 0, 0);
+    move_to_coordinate_z_first(x_over_chemical_plate_after_transfer, y_over_chemical_plate_after_transfer, -100, -100);
     // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, 0, z2_on_chemical_stack_at_whatever_height);
+    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, z2_on_chemical_stack_at_whatever_height);
     open_gripper();
-    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, 0, 0);
+    move_to_coordinate_x_first(x_over_pin_chemical_output_stack, y_over_chemical_output_stack, -100, -100);
   }
   // cell stack
   else{
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
-    move_to_coordinate_x_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, 0, cell_plate_on_base);
+    move_to_coordinate_x_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, cell_plate_on_base);
     close_gripper();
     // z2 set to 0 to bring plate up ... might change to something else later but 0 for now
     // Moving up gripper
-    move_to_coordinate_z_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, 0, 0);
+    move_to_coordinate_z_first(x_over_cell_plate_after_transfer, y_over_cell_plate_after_transfer, -100, -100);
     // Move to pin transfer area
-    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, 0, z2_on_cell_stack_at_whatever_height);
+    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, z2_on_cell_stack_at_whatever_height);
     open_gripper();
-    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, 0, 0);
+    move_to_coordinate_x_first(x_over_pin_cell_output_stack, y_over_cell_output_stack, -100, -100);
   }
 }
 
@@ -544,23 +529,23 @@ void do_wash(short wash_step){
   // Solution 1
   if(wash_step == 1){
     // Move to Solution 1
-    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, pintool_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, pintool_into_solution, -100);
     delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, 0, 0);
+    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, -100, -100);
   }
   // Solution 2
   else if(wash_step == 2){
     // Move to Solution 2
-    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, pintool_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, pintool_into_solution, -100);
     delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, 0, 0);   
+    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, -100, -100);   
   }
   // Solution 3
   else if(wash_step == 3){
     // Move to Solution 3
-    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, pintool_into_solution,0);
+    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, pintool_into_solution, -100);
     delay(time_in_solution_ms);
-    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, 0, 0); 
+    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, -100, -100); 
   }
 }
 
@@ -597,14 +582,14 @@ void do_fan_and_heat(int drying_time_ms){
   #define pin_tool_over_fan -1
   
   // Move pin tool over the fan
-  move_to_coordinate_x_first(x_over_fan, y_over_fan, pin_tool_over_fan, 0);
+  move_to_coordinate_x_first(x_over_fan, y_over_fan, pin_tool_over_fan, -100);
   fan_on();
   heat_on();
   delay(drying_time_ms);
   heat_off();
   fan_off();
   delay(drying_time_ms);
-  move_to_coordinate_x_first(x_over_fan, y_over_fan, 0, 0);
+  move_to_coordinate_x_first(x_over_fan, y_over_fan, -100, -100);
 }
 
 // TODO
@@ -624,16 +609,16 @@ void do_pin_transfer(long pin_depth){
   long depth = convert_mm_to_steps(pin_depth);
 
   // Move to chemical plate to absorb chemicals in pin tool also dipping pin tool in chemical plate
-  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_chemical_area, depth,0);
+  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_chemical_area, depth, -100);
   delay(time_for_full_absorption_of_chemicals_in_ms);
 
   // Moving pin tool out of chemical plate
-  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, 0,0);
+  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, -100, -100);
   // Moving pin tool to cell plate and transfer chemicals to cells
-  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, depth, 0);
+  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, depth, -100);
   delay(time_for_full_transfer_of_chemicals_in_ms);
   // Moving pin tool out of cell plate
-  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, 0,0);
+  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, -100, -100);
 }
 
 // TODO
