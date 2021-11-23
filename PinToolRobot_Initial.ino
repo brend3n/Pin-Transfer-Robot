@@ -11,6 +11,9 @@
 #include <MCUFRIEND_kbv.h>
 #include <TouchScreen.h>
 
+// Bluetooth
+#include <AltSoftSerial.h>
+
 /*  
   A Phallic Haiku
 
@@ -75,6 +78,41 @@
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 // Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 MCUFRIEND_kbv tft;
+/*###########################################################################################*/
+/*Bluetooth*/
+AltSoftSerial BTserial;
+
+
+
+
+// Pins 46 and 48 represent the Arduino Mega's TX and RX pins, respectively.
+char c=' ';
+boolean NL = true;
+
+// ACTIVE HIGH
+// Used to simulate a
+// change in state.
+#define BUTTON 6
+
+// Debounce time in ms
+#define DEBOUNCE 50
+
+// To be defined later by LCD
+// prompt
+#define NUM_PLATES 8
+
+// Done means no more work needs to be done.
+enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, WASHED, DRIED, SRCLOADED, RCPLOADED, DONE};
+
+unsigned long lastPressTime = 0;
+int buttonState = HIGH;
+int lastButtonSate = HIGH;
+unsigned long debounce = DEBOUNCE;
+
+byte plate_number = 0, state = CALIBRATING;
+
+
+
 
 /*###########################################################################################*/
 /*Other Pin Definitions*/
@@ -1267,6 +1305,11 @@ void run_startup(){
 }
 
 void setup() {
+
+  // 9600 is the AT-Command baud rate
+  BTserial.begin(9600);  
+
+
   run_startup();
 
 }

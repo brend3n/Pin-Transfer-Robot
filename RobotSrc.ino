@@ -83,7 +83,7 @@ void gripper(int a, Servo x)
   {
     for (int angle = currentPos; angle >= a; angle--) {
       x.write(angle);
-      delay(15);
+      delay(45);
     }
   }
   else if (currentPos < a)
@@ -110,7 +110,7 @@ void setup(){
     pinMode(z2_switch, INPUT);
 
     // Configure servo
-    servo.attach(9);
+    servo.attach(10);
 
     // Set maxmium speeds
     gantry.setMaxSpeed(MAX_SPEED);
@@ -134,10 +134,11 @@ void setup(){
   //  gripper_movement_test();
   
     servo.write(OPEN);
+    gripper(OPEN, servo);
     
     
     // 3 is the number of plates that we are unstacking
-    unstack(3, STACKED_PLATE_GRIP_HEIGHT_OFFSET, STEPS_UNTIL_BOTTOM_OF_STACK);
+//    unstack(3, STACKED_PLATE_GRIP_HEIGHT_OFFSET, STEPS_UNTIL_BOTTOM_OF_STACK);
 }
 
 
@@ -354,11 +355,50 @@ void gripper_movement_test(){
   motor_z2.runToNewPosition(z2_start);
 }
 
+//void test_different_heights_featuring_justin_timberlake(){
+//  int val;
+//  while(true){
+//    if(digitalRead(x_switch) == LOW){
+//      if(val == CLOSE){
+//        val = OPEN;
+//      }else{
+//        val = CLOSE;
+//      }
+//      gripper(val, servo);
+//    }else if(digitalRead(y_switch) == LOW){
+//      break;
+//    }
+//  }
+//
+//  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1);
+//  long x_start = calibrate_motor(&gantry, x_switch, -1);
+//
+//  // Always set the speed
+//  // before you call runToNewPosition()
+//  motor_z2.setSpeed(SPEED_Z2);
+//  gantry.setSpeed(SPEED_GANTRY);
+//
+//  // baseline position(bottom)
+//  gantry.runToNewPosition(x_start);
+//  motor_z2.runToNewPosition(z2_start);
+//  gripper(OPEN, servo);
+//
+//  for(int i = 0;;i+=25){
+//    long test_height = z2.currentPosition() + i;
+//    motor_z2.setSpeed(SPEED_Z2);
+//    motor_z2.runToNewPosition(z2_start);
+//    
+//    
+//  }
+//
+//  
+//}
+
 // Used for returning the absolute coordinates of a certain position
 void get_absolute_positions(){ 
+  while (true){
 
-
-  int val;
+    int val;
 
   Serial.println("Press x limit switch to toggle gripper");
   Serial.println("Press the y limit switch to begin calibration");
@@ -401,8 +441,170 @@ void get_absolute_positions(){
   motor_y.runToNewPosition(y_start);
   motor_z1.runToNewPosition(z1_start);
   motor_z2.runToNewPosition(z2_start);
+    
+  }
 }
 
+
+void test_different_heights() {
+  int val;
+  Serial.println("Here");
+  while(true){
+    if(digitalRead(x_switch) == LOW){
+      if(val == CLOSE){
+        val = OPEN;
+      }else{
+        val = CLOSE;
+      }
+      gripper(val, servo);
+    }else if(digitalRead(y_switch) == LOW){
+      break;
+    }
+  }
+
+  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1);
+  long x_start = calibrate_motor(&gantry, x_switch, -1);
+
+  // Always set the speed
+  // before you call runToNewPosition()
+  motor_z2.setSpeed(SPEED_Z2);
+  gantry.setSpeed(SPEED_GANTRY);
+
+  // baseline position(bottom)
+  gantry.runToNewPosition(x_start);
+  motor_z2.runToNewPosition(z2_start);
+  gripper(OPEN, servo);
+
+  for (int i = 0;; i += 25) {
+    for (int j = 0; j < 3; j++) {
+      // go up by some distance
+      motor_z2.setSpeed(SPEED_Z2);
+      motor_z2.move(i);
+      motor_z2.runToPosition();
+      Serial.print("motor_z2 position: "); Serial.println(motor_z2.currentPosition());
+      delay(1000);
+
+      // grab
+      gripper(CLOSE, servo);
+      delay(2000);
+
+      // go up by some more from when you grabbed
+      motor_z2.setSpeed(SPEED_Z2);
+      motor_z2.move(1000);
+      motor_z2.runToPosition();
+      delay(1000);
+
+      // go back
+      gantry.setSpeed(SPEED_GANTRY);
+      gantry.move(400);
+      gantry.runToPosition();
+      delay(1000);
+
+      // then forth
+      gantry.setSpeed(SPEED_GANTRY);
+      gantry.move(-400);
+      gantry.runToPosition();
+      delay(1000);
+
+      // then go down and drop it
+      motor_z2.setSpeed(SPEED_Z2);
+      motor_z2.move(-1000);
+      motor_z2.runToPosition();
+      delay(1000);
+
+      motor_z2.setSpeed(SPEED_Z2);
+      motor_z2.move(-i);
+      motor_z2.runToPosition();
+      delay(1000);
+
+      gripper(OPEN, servo);
+      delay(2000);
+    }
+  }
+}
+
+// Used for returning the absolute coordinates of a certain position
+void get_absolute_positions_loop(){ 
+
+  String area [10] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
+  int i = 0;
+  while (true){
+
+    int val;
+
+    Serial.println("Press x limit switch to toggle gripper");
+    Serial.println("Press the y limit switch to begin calibration");
+
+    gripper(OPEN, servo);
+    while(true){
+        if(digitalRead(x_switch) == LOW){
+
+            if(val == CLOSE){
+                val = OPEN;
+            }else{
+                val = CLOSE;
+            }    
+            gripper(val, servo);
+
+        }else if(digitalRead(y_switch) == LOW){
+            break;
+        }
+    }
+
+    delay(3000);
+
+//    long z1_start;
+//    long z2_start;
+//    long x_start;
+//    long y_start;
+
+    Serial.println("Calibrating Z1");
+    long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+
+    Serial.println("Calibrating Z2");
+    long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+
+    Serial.println("Calibrating gantry");
+    long x_start = calibrate_motor(&gantry , x_switch, -1);
+
+    Serial.println("Calibrating Y");
+    long y_start = calibrate_motor(&motor_y, y_switch, -1);
+    
+    motor_z1.setSpeed(SPEED_Z);
+    motor_z2.setSpeed(SPEED_Z);
+    gantry.setSpeed(SPEED_GANTRY);
+    motor_y.setSpeed(SPEED_Y);
+
+    Serial.println("Done calibrating all motors");
+    Serial.println("\nResults of " + String(area[i++]));
+    
+    // Print the coordinate from where the motor started
+    Serial.println("Pre-calibration starting position: ");
+    Serial.println("X: " + String(x_start) + "\nY: " + String(y_start) + "\nZ1: " + String(z1_start) + "\nZ2: " + String(z2_start) +"\n");
+
+    Serial.println("Running to starting position");
+    gantry.runToNewPosition(x_start);
+    motor_y.runToNewPosition(y_start);
+    motor_z1.runToNewPosition(z1_start);
+    motor_z2.runToNewPosition(z2_start);
+
+    // Print the current coordinates of the motor
+    Serial.println("Current Positions:");
+    Serial.println("X: " + String(gantry.currentPosition()) + "\nY: " + String(motor_y.currentPosition()) + "\nZ1: " + String(motor_z1.currentPosition()) + "\nZ2: " + String(motor_z2.currentPosition()));
+
+    Serial.println("Press x limit switch to find another value\nPress y limit switch to end.");
+    delay(3000);
+    while (true){
+        if(digitalRead(x_switch) == LOW){
+            Serial.println("Turn off power supply to motor drivers to re-position shit.");
+             break;
+        }else if(digitalRead(y_switch) == LOW){
+            Serial.println("Done getting values.");
+            return;
+        }
+    }
+  }
+}
 
 void unstack(int num_plates, int offset,int steps_until_last_plate){
     int grab_height = steps_until_last_plate + offset * (num_plates - 1);
@@ -437,7 +639,7 @@ void unstack(int num_plates, int offset,int steps_until_last_plate){
 
 
 void move_y(){
-  motor_y.setSpeed(100);
+  motor_y.setSpeed(-100);
   while(true){
     motor_y.runSpeed();
   }
@@ -454,7 +656,10 @@ void test_limit_switches(){
 }
 void loop(){
 
-  test_limit_switches();
-  get_absolute_positions();
+//  test_limit_switches();
+//  get_absolute_positions_loop();
+
+//move_y();
+test_different_heights();
 }
   
