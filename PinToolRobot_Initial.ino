@@ -674,7 +674,7 @@ void run_all_cycles(boolean *wash_steps, short num_plates, int pin_depth ){
     do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_in_steps_input_stack, height_of_next_plate_in_steps_output_stack);
 
     // Update where the next plate is located at.
-//    height_of_next_plate_to_grab -= plate_height_in_steps;
+   height_of_next_plate_to_grab -= plate_height_in_steps;
   }
 }
 
