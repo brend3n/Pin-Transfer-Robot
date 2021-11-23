@@ -6,8 +6,9 @@
 #include <Servo.h>
 
 // LCD
-#include <Adafruit_TFTLCD.h>
+// #include <Adafruit_TFTLCD.h>
 #include <Adafruit_GFX.h>
+#include <MCUFRIEND_kbv.h>
 #include <TouchScreen.h>
 
 /*  
@@ -72,7 +73,8 @@
 
 // Instantiate touch screen and lcd objects
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+// Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+MCUFRIEND_kbv tft;
 
 /*###########################################################################################*/
 /*Other Pin Definitions*/
@@ -681,9 +683,10 @@ void configure_lcd()
   tft.reset();
   uint16_t identifier = tft.readID();
   tft.begin(identifier);
+  tft.setRotation(2);
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
-  pinMode(13, OUTPUT);
+  pinMode(LCD_CLOCK, OUTPUT);
 }
 
 
@@ -759,9 +762,9 @@ int plateNumberInput()
   int plateNum = -1;
   while (true)
   {
-    digitalWrite(13, HIGH);
+    digitalWrite(LCD_CLOCK, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(13, LOW);
+    digitalWrite(LCD_CLOCK, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -920,9 +923,9 @@ int depthInput()
   int x_cursor = 115;
   while (true)
   {
-    digitalWrite(13, HIGH);
+    digitalWrite(LCD_CLOCK, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(13, LOW);
+    digitalWrite(LCD_CLOCK, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1073,9 +1076,9 @@ void washStepInput(bool * steps)
       
   while (true)
   {
-    digitalWrite(13, HIGH);
+    digitalWrite(LCD_CLOCK, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(13, LOW);
+    digitalWrite(LCD_CLOCK, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1173,9 +1176,9 @@ bool paramCheck(int plateNum, int depth, bool * steps)
 
   while (true)
   {
-    digitalWrite(13, HIGH);
+    digitalWrite(LCD_CLOCK, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(13, LOW);
+    digitalWrite(LCD_CLOCK, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
@@ -1196,12 +1199,12 @@ bool paramCheck(int plateNum, int depth, bool * steps)
 // Show pin tool operation progress
 void progressScreen(int plateNum, String location)
 {
-  tft.fillRect(134, 115, 30, 30, BLACK);
-  tft.fillRect(160, 155, 100, 30, BLACK);
-  tft.setCursor(50, 120);
+  tft.fillRect(154, 115, 30, 30, BLACK);
+  tft.fillRect(130, 155, 120, 30, BLACK);
+  tft.setCursor(70, 120);
   tft.print("Plate #");
   tft.print(plateNum);
-  tft.setCursor(50, 160);
+  tft.setCursor(20, 160);
   tft.print("Location: ");
   tft.print(location);
 }
@@ -1219,9 +1222,9 @@ void redo()
 
   while (true)
   {
-    digitalWrite(13, HIGH);
+    digitalWrite(LCD_CLOCK, HIGH);
     TSPoint point = ts.getPoint();
-    digitalWrite(13, LOW);
+    digitalWrite(LCD_CLOCK, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     if (point.z  >= 200 && point.z <= 1500)
