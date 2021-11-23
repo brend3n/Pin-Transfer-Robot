@@ -115,6 +115,8 @@ MCUFRIEND_kbv tft;
 
 #define heat_and_fan_delay    5000
 
+#define steps_per_mm 28 
+
 
 // Pin tool only
 long solution_1 {};
@@ -157,6 +159,9 @@ Servo servo = Servo();
 // ! NEED
 // Converts a distance in mm to steps
 long convert_mm_to_steps(float mm){
+
+  // 28 steps per mm
+  // 319 offset per plate
   long steps = mm * steps_per_mm;
   return steps;
 }
