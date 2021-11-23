@@ -366,8 +366,8 @@ void close_gripper(){
 /*Robot Functions*/
 
 // Moves each motor to a given position starting with the x-axis
-// void move_to_coordinate_x_first(long x, long y, long z1, long z2){
-void move_to_coordinate_x_first(long *coordinates){
+void move_to_coordinate_x_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_x_first(long *coordinates){
 
   motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
@@ -381,8 +381,8 @@ void move_to_coordinate_x_first(long *coordinates){
   
 }
 // Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
-// void move_to_coordinate_z_first(long x, long y, long z1, long z2){
-void move_to_coordinate_z_first(long *coordinates){
+void move_to_coordinate_z_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_z_first(long *coordinates){
 
   motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
@@ -607,7 +607,6 @@ void do_pin_transfer(long pin_depth){
 
   #define y_over_pin_transfer_cell_area -1
   
-  
 
   long depth = convert_mm_to_steps(pin_depth);
 
@@ -618,10 +617,10 @@ void do_pin_transfer(long pin_depth){
   // Moving pin tool out of chemical plate
   move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, -100, -100);
   // Moving pin tool to cell plate and transfer chemicals to cells
-  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, depth, -100);
+  move_to_coordinate_x_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, depth, -100);
   delay(time_for_full_transfer_of_chemicals_in_ms);
   // Moving pin tool out of cell plate
-  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_cell_area, -100, -100);
+  move_to_coordinate_z_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, -100, -100);
 }
 
 // TODO
@@ -1286,10 +1285,6 @@ void loop() {
 
   redo();
 }
-
-
-
-
 
 /*FLOW OF CONTROL FOR A PIN TRANSFER*/
 /**
