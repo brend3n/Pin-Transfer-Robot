@@ -42,7 +42,7 @@
 #define SPEED_Z2     100
 #define SPEED_Z      100
 #define SPEED_GANTRY -50
-#define SPEED_Y      300
+#define SPEED_Y      200
 
 
 #define STACKED_PLATE_GRIP_HEIGHT_OFFSET 319
@@ -65,7 +65,7 @@ int y_pos;
 int mapX;
 int mapY;
 
-#define MAX_SPEED 900
+#define MAX_SPEED 200
 #define MAX_ACCELERATION 100
 
 // Instantiating motor driver objects
@@ -609,7 +609,8 @@ void get_absolute_positions_loop(){
 }
 
 void unstack(int num_plates, int offset,int steps_until_last_plate){
-    int grab_height = steps_until_last_plate + offset * (num_plates - 1);
+
+    int grab_height = steps_until_last_plate + (offset * (num_plates - 1));
 
     long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
     long x_start = calibrate_motor(&gantry , x_switch, -1);
@@ -639,6 +640,53 @@ void unstack(int num_plates, int offset,int steps_until_last_plate){
     }
 }
 
+
+void stacking_test(int num_plates, int offset,int steps_until_last_plate){
+    int grab_height = steps_until_last_plate + (offset * (num_plates - 1));
+    int stack_height = steps_until_last_plate;
+
+    int val;
+    Serial.println("Press x limit switch to toggle gripper");
+    Serial.println("Press the y limit switch to begin calibration");
+
+    gripper(OPEN, servo);
+    while(true){
+        if(digitalRead(x_switch) == LOW){
+
+            if(val == CLOSE){
+                val = OPEN;
+            }else{
+                val = CLOSE;
+            }    
+            gripper(val, servo);
+
+        }else if(digitalRead(y_switch) == LOW){
+            break;
+        }
+    }
+
+    delay(3000);
+
+    long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+    long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+    long x_start = calibrate_motor(&gantry , x_switch, -1);
+    long y_start = calibrate_motor(&motor_y, y_switch ,-1);
+
+
+    for(int i = 0 ; i < num_plates; i++){
+
+        move_to_coordinate_x_first(1463, 3358, -400, grab_height);
+        gripper(CLOSE, servo);
+        move_to_coordinate_z_first(1463, 3358, -400, -400);
+        
+        move_to_coordinate_x_first(2063,3358,-400, stack_height);
+        gripper(OPEN, servo);
+        move_to_coordinate_z_first(1463, 3358, -400, -400);
+
+        grab_height -= offset;
+        stack_height += offset;
+    }
+}
 
 void move_y(){
   motor_y.setSpeed(SPEED_Y);
@@ -768,6 +816,10 @@ void loop(){
 // get_absolute_positions();
 // move_y();
 //position_test();
+
+// -1881 base 
+stacking_test(3, 319, -1881);
+
 
 }
   
