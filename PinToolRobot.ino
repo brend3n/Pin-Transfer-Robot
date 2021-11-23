@@ -538,7 +538,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   // chemical stack
   if (stack){
 
-    // ! Might have to move the z2 motor up to -100 before calling the function below
+    
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_chemical_stack, y_over_chemical_stack, -100, height_to_pick_from);
@@ -555,7 +555,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   // cell stack
   else{
 
-    // ! Might have to move the z2 motor up to -100 before calling the function below 
+    
     // Position gripper over stack
     // z1 is set to 0 because we dont know height yet of first plate to grab so bring it all the way up
     move_to_coordinate_x_first(x_over_cell_stack, y_over_cell_stack, -100, height_to_pick_from);

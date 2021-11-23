@@ -42,7 +42,7 @@
 #define SPEED_Z2     100
 #define SPEED_Z      100
 #define SPEED_GANTRY -50
-#define SPEED_Y      100
+#define SPEED_Y      300
 
 
 #define STACKED_PLATE_GRIP_HEIGHT_OFFSET 319
@@ -65,7 +65,7 @@ int y_pos;
 int mapX;
 int mapY;
 
-#define MAX_SPEED 100
+#define MAX_SPEED 900
 #define MAX_ACCELERATION 100
 
 // Instantiating motor driver objects
@@ -396,9 +396,8 @@ void gripper_movement_test(){
 
 // Used for returning the absolute coordinates of a certain position
 void get_absolute_positions(){ 
-  while (true){
 
-    int val;
+  int val;
 
   Serial.println("Press x limit switch to toggle gripper");
   Serial.println("Press the y limit switch to begin calibration");
@@ -417,8 +416,11 @@ void get_absolute_positions(){
     }
   }
 
-  Serial.println("Calibrating Z1");
-  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+
+  long z1_start;
+
+//  Serial.println("Calibrating Z1");
+//  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
 
   Serial.println("Calibrating Z2");
   long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
@@ -429,7 +431,7 @@ void get_absolute_positions(){
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch, -1);
  
-  motor_z1.setSpeed(SPEED_Z);
+//  motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
@@ -439,10 +441,10 @@ void get_absolute_positions(){
 
   gantry.runToNewPosition(x_start);
   motor_y.runToNewPosition(y_start);
-  motor_z1.runToNewPosition(z1_start);
+//  motor_z1.runToNewPosition(z1_start);
   motor_z2.runToNewPosition(z2_start);
     
-  }
+  
 }
 
 
@@ -553,13 +555,13 @@ void get_absolute_positions_loop(){
 
     delay(3000);
 
-//    long z1_start;
+    long z1_start;
 //    long z2_start;
 //    long x_start;
 //    long y_start;
 
-    Serial.println("Calibrating Z1");
-    long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+//    Serial.println("Calibrating Z1");
+//    long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
 
     Serial.println("Calibrating Z2");
     long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
@@ -639,7 +641,7 @@ void unstack(int num_plates, int offset,int steps_until_last_plate){
 
 
 void move_y(){
-  motor_y.setSpeed(-100);
+  motor_y.setSpeed(SPEED_Y);
   while(true){
     motor_y.runSpeed();
   }
@@ -654,12 +656,118 @@ void test_limit_switches(){
    Serial.println();
    delay(1000);
 }
+
+
+
+// Moves each motor to a given position starting with the x-axis
+void move_to_coordinate_x_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_x_first(long *coordinates){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  
+}
+// Moves each motor to a given position starting with the z-axis to prevent the pintool/gripper from hitting anything on the workspace
+void move_to_coordinate_z_first(long x, long y, long z1, long z2){
+// void move_to_coordinate_z_first(long *coordinates){
+
+  motor_z1.setSpeed(SPEED_Z);
+  motor_z2.setSpeed(SPEED_Z);
+  gantry.setSpeed(SPEED_GANTRY);
+  motor_y.setSpeed(SPEED_Y);
+
+  motor_z1.runToNewPosition(z1);
+  motor_z2.runToNewPosition(z2);
+  gantry.runToNewPosition(x);
+  motor_y.runToNewPosition(y);
+}
+void position_test(){
+    int val;
+
+    Serial.println("Press x limit switch to toggle gripper");
+    Serial.println("Press the y limit switch to begin calibration");
+
+    gripper(OPEN, servo);
+    while(true){
+        if(digitalRead(x_switch) == LOW){
+
+            if(val == CLOSE){
+                val = OPEN;
+            }else{
+                val = CLOSE;
+            }    
+            gripper(val, servo);
+
+        }else if(digitalRead(y_switch) == LOW){
+            break;
+        }
+    }
+
+    delay(3000);
+
+    long z1_start;
+//    long z2_start;
+//    long x_start;
+//    long y_start;
+
+//    Serial.println("Calibrating Z1");
+//    long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+
+    Serial.println("Calibrating Z2");
+    long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+
+    Serial.println("Calibrating gantry");
+    long x_start = calibrate_motor(&gantry , x_switch, -1);
+
+    Serial.println("Calibrating Y");
+    long y_start = calibrate_motor(&motor_y, y_switch, -1);
+    
+    motor_z1.setSpeed(SPEED_Z);
+    motor_z2.setSpeed(SPEED_Z);
+    gantry.setSpeed(SPEED_GANTRY);
+    motor_y.setSpeed(SPEED_Y);
+
+    Serial.println("Done calibrating all motors");
+
+    /*
+     * Cell transfer -> input cell stack
+     * 
+    // Move to cell transfer area
+    move_to_coordinate_x_first(1463,3358,-400,-1892);
+    gripper(CLOSE, servo);
+    move_to_coordinate_z_first(1463,3358,-400, -1000);
+
+    // Move to input stack
+    move_to_coordinate_x_first(2063,3423, -400, -1772);
+    gripper(OPEN, servo);
+    move_to_coordinate_z_first(2063,3423, -400, -1000);
+
+    */
+
+    // Move to cell transfer area
+    move_to_coordinate_x_first(1467,6051,-400,-1892);
+    gripper(CLOSE, servo);
+    move_to_coordinate_z_first(1467,6051,-400, -1000);
+
+    // Move to input stack
+    move_to_coordinate_x_first(2063,6091, -400, -1892);
+    gripper(OPEN, servo);
+    move_to_coordinate_z_first(2063,6091, -400, -1000);
+    
+}
 void loop(){
 
 //  test_limit_switches();
-//  get_absolute_positions_loop();
+// get_absolute_positions();
+// move_y();
+//position_test();
 
-//move_y();
-test_different_heights();
 }
   
