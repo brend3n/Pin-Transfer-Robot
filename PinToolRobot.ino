@@ -760,12 +760,10 @@ void wash_pin_tool(boolean [] wash_steps){
   }
 }
 
-// TODO
-// TEST
+
 void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps, int plateNum){
   progressScreen(plateNum, "Input");
   take_from_stack(true, height_of_next_plate_in_steps_input_stack);
-  // Cell stack
   take_from_stack(false, height_of_next_plate_in_steps_input_stack);  
   progressScreen(plateNum, "Transfer");
   do_pin_transfer(pin_depth);
@@ -778,25 +776,18 @@ void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_
   push_onto_stack(false, height_of_next_plate_in_steps_output_stack);
 }
 
-// TODO
-// TEST
-//void run_all_cycles(short num_plates, short num_wash_steps, int pin_depth, int drying_time){/
 void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
-   
-  #define drying_time -1
-   
-  double height_of_stack = (num_plates * plate_height_in_mm);
-  // NEED TO DETERMINE THESE
-  double height_of_next_plate_in_steps_input_stack = convert_mm_to_steps(height_of_stack);
-  double height_of_next_plate_in_steps_output_stack;
+  int grab_height = BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1));
+  int stack_height = BASE_PLATE_STEPS;
+  
   for(int i = 0; i < num_plates; i++){
     
     do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab, i+1);
 
     // Update where the next plate is located at.
-    height_of_next_plate_to_grab -= plate_height_in_steps;
-    height_of_next_plate_in_steps_output_stack += ;
+    grab_height -= Plate_Offset;
+    stack_height += Plate_Offset;
   }
 }
 

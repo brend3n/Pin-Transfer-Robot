@@ -707,8 +707,6 @@ void test_limit_switches(){
    delay(1000);
 }
 
-
-
 // Moves each motor to a given position starting with the x-axis
 void move_to_coordinate_x_first(long x, long y, long z1, long z2){
 // void move_to_coordinate_x_first(long *coordinates){
@@ -738,6 +736,7 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
   gantry.runToNewPosition(x);
   motor_y.runToNewPosition(y);
 }
+
 void position_test(){
     int val;
 
