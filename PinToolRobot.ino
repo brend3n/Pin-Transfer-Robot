@@ -534,7 +534,7 @@ void take_from_stack(boolean stack, int height_to_pick_from){
   #define x_over_pin_transfer_area -1
   #define y_over_pin_transfer_for_cell -1
   #define z2_on_cell_area_on_workspace -1
-  
+
   // chemical stack
   if (stack){
 
@@ -706,11 +706,16 @@ void dry_pin_tool(){
 
 // TODO
 // TEST
-void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps){
+void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps, int plateNum){
+   progressScreen(plateNum, "Input");
    take_from_stack();
+   progressScreen(plateNum, "Transfer");
    do_pin_transfer();
+   progressScreen(plateNum, "Wash");
    wash_pin_tool(wash_steps);
+   progressScreen(plateNum, "Dry");
    dry_pin_tool();
+   progressScreen(plateNum, "Output");
    push_onto_stack();
 }
 
@@ -725,7 +730,7 @@ void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
   for(int i = 0; i < num_plates; i++){
     
-    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab);
+    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab, i+1);
 
     // Update where the next plate is located at.
     height_of_next_plate_to_grab -= plate_height_in_steps;
@@ -1317,13 +1322,11 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-  
   // Add stepper motor objects to MultiStepper object
   add_all_steppers_to_manager();
 
   // Find reference positions
   calibrate_motors();
-
 }
 
 void setup() {
