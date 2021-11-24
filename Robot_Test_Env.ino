@@ -641,6 +641,8 @@ void unstack(int num_plates, int offset,int steps_until_last_plate){
 }
 
 
+
+/*Takes from one stack to restack another*/
 void stacking_test(int num_plates, int offset,int steps_until_last_plate){
     int grab_height = steps_until_last_plate + (offset * (num_plates - 1));
     int stack_height = steps_until_last_plate;
@@ -808,6 +810,42 @@ void position_test(){
     move_to_coordinate_x_first(2063,6091, -400, -1892);
     gripper(OPEN, servo);
     move_to_coordinate_z_first(2063,6091, -400, -1000);
+    
+}
+
+
+/*Test code for measuring the distance steps are in millimeters*/
+void depth_test(int mm){
+    int val;
+
+    Serial.println("Press x limit switch to toggle gripper");
+    Serial.println("Press the y limit switch to begin calibration");
+
+    // Human 
+    while(true){
+        if(digitalRead(x_switch) == LOW){
+
+            if(val == CLOSE){
+                val = OPEN;
+            }else{
+                val = CLOSE;
+            }    
+            gripper(val, servo);
+
+        }else if(digitalRead(y_switch) == LOW){
+            break;
+        }
+    }
+
+    long mm_in_steps = mm * 25.455;
+    long top_of_wellplate = -1897;
+    long pin_dip = top_of_wellplate - mm_in_steps;
+
+    Serial.println("Test: moving pin tool down " + String(pin_dip) + "mm.");
+  
+    motor_z1.setCurrentPosition(0);
+    motor_z1.move(-1*mm_in_steps);
+    motor_z1.runToPosition();
     
 }
 void loop(){
