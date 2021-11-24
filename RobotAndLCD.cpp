@@ -1488,25 +1488,25 @@ void setup() {
 
 void loop() {
 
-int numPlates = 2;
-int depth = 10;
-bool steps[3] = {true, false, false};
+  int numPlates;
+  int depth;
+  bool steps[3];
   
-//  while (true)
-//  {
-//    plateNumberSetup();
-//    numPlates = plateNumberInput();
-//    depthSetup();
-//    depth = depthInput();
-//    washStepSetup();
-//    washStepInput(steps);
-//    if (paramCheck(numPlates, depth, steps))
-//      break;
-//  }
+ while (true)
+ {
+   plateNumberSetup();
+   numPlates = plateNumberInput();
+   depthSetup();
+   depth = depthInput();
+   washStepSetup();
+   washStepInput(steps);
+   if (paramCheck(numPlates, depth, steps))
+     break;
+ }
 
   run_all_cycles(steps, numPlates, depth);
 
-//  redo();
+  redo();
 }
 
 
