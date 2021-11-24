@@ -41,9 +41,71 @@
 #define stepPinz2 45
 
 /*###########################################################################################*/
-/*Servo Pins*/
+/*Position Constants*/
 
-#define SERVO_PIN 9
+#define Z_HIGH -100
+
+#define STEPS_TO_MM  25.455
+#define Plate_Offset 290
+#define BASE_PLATE_STEPS -1881
+
+#define PINS_ABOVE_WELL_PLATE_OPENING_STEPS -1897
+#define PINS_AT_BOTTOM_OF_WELL_PLATE_STEPS -2128
+
+#define Cell_Input_Stack_X 2063
+#define Cell_Input_Stack_Y 3423
+#define Cell_Input_Stack_Z1 Z_HIGH
+#define Cell_Input_Stack_Z2 BASE_PLATE_STEPS
+
+#define Cell_Output_Stack_X 873
+#define Cell_Output_Stack_Y 3351
+#define Cell_Output_Stack_Z1 Z_HIGH
+#define Cell_Output_Stack_Z2 BASE_PLATE_STEPS
+
+#define Chemical_Input_Stack_X 2063
+#define Chemical_Input_Stack_Y 3423
+#define Chemical_Output_Stack_X 899
+#define Chemical_Output_Stack_Y 6016
+
+#define Cell_Transfer_Area_Gripper_X 1463
+#define Cell_Transfer_Area_Gripper_Y 3358
+#define Cell_Transfer_Area_Gripper_Z1 Z_HIGH
+#define Cell_Transfer_Area_Gripper_Z2 BASE_PLATE_STEPS
+
+#define Chemical_Transfer_Area_Gripper_X 1467
+#define Chemical_Transfer_Area_Gripper_Y 6051
+#define Chemical_Transfer_Area_Gripper_Z1 Z_HIGH
+#define Chemical_Transfer_Area_Gripper_Z2 BASE_PLATE_STEPS
+
+#define Cell_Transfer_Area_Pin_Tool_X 843.5
+#define Cell_Transfer_Area_Pin_Tool_Y 3281
+
+#define Chemical_Transfer_Area_Pin_Tool_X 836
+#define Chemical_Transfer_Area_Pin_Tool_Y 5949
+
+#define Solution_1_X 1451
+#define Solution_1_Y 486
+#define Solution_1_Z1 -1680
+#define Solution_1_Z2 Z_HIGH
+
+#define Solution_2_X 855
+#define Solution_2_Y 417
+#define Solution_2_Z1 -1656
+#define Solution_2_Z2 Z_HIGH
+
+#define Solution_3_X 249
+#define Solution_3_Y 334
+#define Solution_3_Z1 -1657
+#define Solution_3_Z2 Z_HIGH
+
+#define Fan_Heater_X 
+#define Fan_Heater_Y
+#define Fan_Heater_Z1
+#define Fan_Heater_Z2
+
+/*###########################################################################################*/
+/*Servo Pins*/
+#define SERVO_PIN 10
 
 // Servo constants
 #define CLOSE 50
@@ -64,7 +126,6 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define BLACK 0x0000
 #define WHITE 0xFFFF
-
 
 // 13 on the UNO myabe something different on the mega2560
 #define LCD_CLOCK 13
@@ -501,19 +562,6 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
   motor_z2.runToNewPosition(z2);
   gantry.runToNewPosition(x);
   motor_y.runToNewPosition(y);
-}
-
-
-void move_to_xy(long *xy_coordinate){
-
-}
-
-void raise_pintool(){
-
-}
-
-void raise_gripper(){
-
 }
 
 // TODO
