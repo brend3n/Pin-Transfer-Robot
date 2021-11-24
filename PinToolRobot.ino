@@ -6,7 +6,6 @@
 #include <Servo.h>
 
 // LCD
-#include <Adafruit_TFTLCD.h>
 #include <Adafruit_GFX.h>
 #include <TouchScreen.h>
 #include <MCUFRIEND_kbv.h>
@@ -109,8 +108,6 @@
 #define Fan_Heater_Z1 50
 #define Fan_Heater_Z2 50
 
-#define BLE_RX 22
-#define BLE_TX 23
 
 /*###########################################################################################*/
 /*Servo Pins*/
@@ -122,7 +119,6 @@
 
 /*###########################################################################################*/
 /* LCD Pin Definitions*/
-
 
 #define YP A3  
 #define XM A2  
@@ -147,6 +143,8 @@ MCUFRIEND_kbv tft;
 /*###########################################################################################*/
 /*Bluetooth*/
 
+#define BLE_RX 22
+#define BLE_TX 23
 
 struct Ptr_Ble {
   void set_num_plates(int val);
@@ -376,19 +374,19 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 void calibrate_motors(){ 
   int val;
 
-  gripper(OPEN, servo);
-  while(true){
-    if(digitalRead(x_switch) == LOW){
-      if(val == CLOSE){
-        val = OPEN;
-      }else{
-        val = CLOSE;
-      }    
-      gripper(val, servo);
-    }else if(digitalRead(y_switch) == LOW){
-      break;
-    }
-  }
+//  gripper(OPEN, servo);
+//  while(true){
+//    if(digitalRead(x_switch) == LOW){
+//      if(val == CLOSE){
+//        val = OPEN;
+//      }else{
+//        val = CLOSE;
+//      }    
+//      gripper(val, servo);
+//    }else if(digitalRead(y_switch) == LOW){
+//      break;
+//    }
+//  }
 
   Serial.println("Calibrating Z1");
   long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
@@ -730,6 +728,7 @@ void configure_lcd()
   tft.reset();
   uint16_t identifier = tft.readID();
   tft.begin(identifier);
+  tft.setRotation(2);
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
   pinMode(13, OUTPUT);
@@ -791,7 +790,7 @@ void plateNumberSetup()
   tft.println("8");
   tft.drawRect(140, 205, 30, 30, WHITE);
   tft.setCursor(150,213);
-  tft.println("9");
+  tft.println("8");
   tft.drawRect(105, 240, 30, 30, WHITE);
   tft.setCursor(115,248);
   tft.println("0");
@@ -886,8 +885,8 @@ int plateNumberInput()
       {
         tft.fillRect(105, 90, 30, 30, BLACK);
         tft.setCursor(115, 100);
-        tft.print("8");
-        plateNum = 8;
+        tft.print("9");
+        plateNum = 9;
         delay(1000);
       }
       else if (x >= 140 && x <= 175 && y >= 28 && y <= 50)
@@ -907,9 +906,6 @@ int plateNumberInput()
       }
     }
   }
-
-  ptr_ble.set_num_plates(plateNum);
-
   return plateNum;
 }
 
@@ -917,7 +913,7 @@ int plateNumberInput()
 // create the screen asking for pin tool depth
 void depthSetup()
 {
-  // Reset screen
+   // Reset screen
   tft.fillScreen(BLACK);
   // Instructions
   tft.setCursor(33,20);
@@ -1248,12 +1244,12 @@ bool paramCheck(int plateNum, int depth, bool * steps)
 // Show pin tool operation progress
 void progressScreen(int plateNum, String location)
 {
-  tft.fillRect(134, 115, 30, 30, BLACK);
-  tft.fillRect(160, 155, 100, 30, BLACK);
-  tft.setCursor(50, 120);
+  tft.fillRect(154, 115, 30, 30, BLACK);
+  tft.fillRect(130, 155, 120, 30, BLACK);
+  tft.setCursor(70, 120);
   tft.print("Plate #");
   tft.print(plateNum);
-  tft.setCursor(50, 160);
+  tft.setCursor(20, 160);
   tft.print("Location: ");
   tft.print(location);
 }
@@ -1280,6 +1276,9 @@ void redo()
     {
       int x = map(point.x, 78, 951, 0, 320);
       int y = map(point.y, 96, 921, 0, 240);
+      Serial.println(x);
+      Serial.println(y);
+      Serial.println();
       if (x >= 106 && x <= 214 && y >= 90 && y <= 105)
         break;
     }
@@ -1317,7 +1316,6 @@ void setup() {
 
   // 9600 is the AT-Command baud rate
   ptr_ble.bleSerial->begin(9600);  
-
 
   run_startup();
 }

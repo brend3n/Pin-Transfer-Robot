@@ -425,11 +425,14 @@ void get_absolute_positions(){
   Serial.println("Calibrating Z2");
   long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
 
+
   Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch, -1);
 
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch, -1);
+
+  
  
 //  motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
