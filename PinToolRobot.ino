@@ -902,8 +902,8 @@ int plateNumberInput()
       {
         tft.fillRect(105, 90, 30, 30, BLACK);
         tft.setCursor(115, 100);
-        tft.print("9");
-        plateNum = 9;
+        tft.print("8");
+        plateNum = 8;
         delay(1000);
       }
       else if (x >= 140 && x <= 175 && y >= 28 && y <= 50)
