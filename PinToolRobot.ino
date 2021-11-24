@@ -9,10 +9,10 @@
 #include <Adafruit_TFTLCD.h>
 #include <Adafruit_GFX.h>
 #include <TouchScreen.h>
+#include <MCUFRIEND_kbv.h>
 
 // Bluetooth
 #include <AltSoftSerial.h>
-
 /*  
   A Phallic Haiku
 
@@ -44,6 +44,12 @@
 /*Position Constants*/
 
 #define Z_HIGH -100
+
+#define drying_time_ms 10000
+#define time_in_solution_ms 1000
+
+#define time_for_full_absorption_of_chemicals_in_ms 1000
+#define time_for_full_transfer_of_chemicals_in_ms 1000
 
 #define STEPS_TO_MM  25.455
 #define Plate_Offset 290
@@ -113,17 +119,18 @@
 
 /*###########################################################################################*/
 /* LCD Pin Definitions*/
+
+
 #define YP A3  
 #define XM A2  
 #define YM 9   
 #define XP 8 
-TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define LCD_CS A3
 #define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 #define LCD_RESET A4
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+
 #define BLACK 0x0000
 #define WHITE 0xFFFF
 
@@ -132,13 +139,12 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 // Instantiate touch screen and lcd objects
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-// Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 MCUFRIEND_kbv tft;
 
 /*###########################################################################################*/
 /*Bluetooth*/
 
-
+/*
 struct Ptr_Ble {
   AltSoftSerial bleSerial;
   byte state;
@@ -204,15 +210,15 @@ void Ptr_Ble:update_and_send() {
 }
 
 Ptr_Ble ptr_ble;
-
+*/
 /*###########################################################################################*/
 /*Other Pin Definitions*/
 
 // Limit switch pins definitions
 #define y_switch 26
 #define x_switch 25
-#define z1_switch 24
-#define z2_switch 29
+#define z1_switch 29
+#define z2_switch 24
 
 // Pins for fan and heater N-Channel MOSFET gate pin
 #define fan_pin         4
@@ -224,19 +230,15 @@ Ptr_Ble ptr_ble;
 
 // Motor speeds
 #define SPEED_GANTRY 100
-#define SPEED_Y 100
-#define SPEED_Z 100
+#define SPEED_Y      200
+#define SPEED_Z      100
 
 #define SPEED_Z1     100
 #define SPEED_Z2     100
 
-// Number of steps in a single step of the motor
-#define NUM_STEP   100
-
 // Speed of all the motors
-#define MAX_SPEED             500
-#define MAX_ACCELERATION      1000
-#define MAX_RUN_DISTANCE      100
+#define MAX_SPEED             150
+#define MAX_ACCELERATION      100
 
 #define DELAY                 500 // Half a second
 
@@ -252,55 +254,6 @@ Ptr_Ble ptr_ble;
 #define INTERRUPTS_ENABLED false
 
 /*###########################################################################################*/
-/*Position Variables*/
-
-// ! Can be optimized further to save space
-short curr_dirx1;
-int   last_posx1;
-short last_dirx1;
-
-short curr_dirx2;
-int   last_posx2;
-short last_dirx2;
-
-// Gantry
-// Used for the gantry (2 x-axis linear actuators together)
-short curr_dir_gantry;
-int   last_pos_gantry;
-short last_dir_gantry;
-
-short curr_diry;
-int   last_posy;
-short last_diry;
-
-short curr_dirz1;
-int   last_posz1;
-short last_dirz1;
-
-short curr_dirz2;
-int   last_posz2;
-short last_dirz2;
-
-// Bounds of each linear actuator
-long x1_right = -1;
-long x1_left  = -1;
-
-long x2_left  = -1;
-long x2_right = -1;
-
-long gantry_left  = -1;
-long gantry_right = -1;
-
-long y_left   = -1;
-long y_right  = -1;
-
-long z1_lower  = -1;
-long z1_upper  = -1;
-
-long z2_lower  = -1;
-long z2_upper  = -1;
-
-/*###########################################################################################*/
 
 // Instantiating motor driver objects
 AccelStepper gantry   = AccelStepper(interface, stepPinx, dirPinx);
@@ -312,47 +265,15 @@ Servo servo = Servo();
 
 /*###########################################################################################*/
 
-// ! NEED
 // Converts a distance in mm to steps
 long convert_mm_to_steps(float mm){
-  long steps = mm * steps_per_mm;
+  long steps = mm * STEPS_TO_MM;
   return steps;
 }
 
 // Prints the current position of each motor to the serial for testing and getting position values for hard coding.
 void print_current_position(){
     Serial.println("X Position: " + String(gantry.currentPosition()) +"\nY Position: " + String(motor_y.currentPosition()) + "\nZ1 Position: " + String(motor_z1.currentPosition()) +"\nZ2 Position: " + String(motor_z2.currentPosition()) + "\n"); 
-}
-
-
-
-// ! Probaby not even used so get rid of this shit ... maybe
-// Computes the direction the motor is moving in
-/* 
-  Returns:
-     1: Motor moving right (clockwise)
-    -1: Motor moving left  (counter clockwise)
-     0: Motor not moving   (static)
-
-
-  State                     Condition
-
-  Moving Right returns 1:   new_pos > last_pos
-  Moving Left returns -1:   new_pos < last_pos  
-  Not Moving returns 0:     new_pos = last_pos
-*/
-// ? Might not be necessary
-// TEST
-// Should be working but need to test
-int curr_direction(int last_pos, int new_pos){
-  if (new_pos > last_pos){
-
-    return 1;
-  }else if(new_pos < last_pos){
-    return -1;
-  }else{
-    return 0;
-  }
 }
 
 // WORKING
@@ -371,10 +292,8 @@ void set_pins(){
   servo.attach(SERVO_PIN);  
 }
 
-// WORKING
 // Configure each motor
 void configure_motors(){
-
 
     // Set maxmium speeds
     gantry.setMaxSpeed(MAX_SPEED);
@@ -389,9 +308,6 @@ void configure_motors(){
     motor_z2.setAcceleration(MAX_ACCELERATION);
 }
 
-
-
-// WORKS
 // Oscillates between the two bounds of a linear actuator
 void oscillate(AccelStepper *motor, long left, long right){
   while(true){
@@ -402,7 +318,6 @@ void oscillate(AccelStepper *motor, long left, long right){
     motor->runToPosition();
   }
 }
-
 
 // Calibrates a single motor given by &motor and a limit switch
 long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
@@ -445,7 +360,6 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 
 // Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
 
-// void gripper_movement_test(){ 
 void calibrate_motors(){ 
   int val;
 
@@ -487,7 +401,6 @@ void calibrate_motors(){
   motor_z2.runToNewPosition(z2_start);
 }
 
-
 // Test code for verifying limit switches are working
 void test_limit_switches(){
    Serial.println("X: " + String(digitalRead(x_switch)));
@@ -497,7 +410,6 @@ void test_limit_switches(){
    Serial.println();
    delay(1000);
 }
-
 
 /*###########################################################################################*/
 /*Servo Functions*/
@@ -564,7 +476,6 @@ void move_to_coordinate_z_first(long x, long y, long z1, long z2){
   motor_y.runToNewPosition(y);
 }
 
-// TODO
 // Take plate from a stack
 // stack ==  
 //    false for cell
@@ -640,44 +551,34 @@ void push_onto_stack(int stack, int height_to_put_on){
 
 // TODO
 void do_wash(short wash_step){
-
-
-  #define pintool_into_solution -1
-  
-  #define x_over_solution_1 -1
-  #define y_over_solution_1 -1
-
-  #define x_over_solution_2 -1
-  #define y_over_solution_2 -1
-
-  #define x_over_solution_3 -1
-  #define y_over_solution_3 -1
-
-
-  #define time_in_solution_ms -1
   
   // Solution 1
   if(wash_step == 1){
     // Move to Solution 1
-    move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Solution_1_Z1, Z_HIGH);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Z_HIGH, Z_HIGH);
+    for(int i = 0; i < 3; i++){
+      move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Solution_1_Z1, Z_HIGH);
+      delay(time_in_solution_ms);
+      move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Z_HIGH, Z_HIGH);  
+    }
   }
   // Solution 2
   else if(wash_step == 2){
     // Move to Solution 2
-    move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Solution_2_Z1, Z_HIGH);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Z_HIGH, Z_HIGH);   
+    for(int i = 0; i < 3;i++){
+      move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Solution_2_Z1, Z_HIGH);
+      delay(time_in_solution_ms);
+      move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Z_HIGH, Z_HIGH);     
+    }
   }
   // Solution 3
   else if(wash_step == 3){
     // Move to Solution 3
-    move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Solution_3_Z1, Z_HIGH);
-    delay(time_in_solution_ms);
-    move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Z_HIGH, Z_HIGH); 
+    for(int i = 0;i < 3; i++){
+      move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Solution_3_Z1, Z_HIGH);
+      delay(time_in_solution_ms);
+      move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Z_HIGH, Z_HIGH);   
+    }
   }
-
 }
 
 // WORKS
@@ -706,10 +607,7 @@ void heat_off(){
 
 // WORKS
 // Allows fan and hearter to draw from power supply
-void do_fan_and_heat(int drying_time_ms){
-  #define x_over_fan -1
-  #define y_over_fan -1
-  #define pin_tool_over_fan -1
+void do_fan_and_heat(){
   
   // Move pin tool over the fan
   move_to_coordinate_x_first(Fan_Heater_X, Fan_Heater_Y, Fan_Heater_Z1, Z_HIGH);
@@ -719,20 +617,12 @@ void do_fan_and_heat(int drying_time_ms){
   heat_off();
   fan_off();
   delay(drying_time_ms);
-  move_to_coordinate_x_first(Fan_Heater_X, Fan_Heater_Y, Z_HIGH, Z_HIGH);
+  move_to_coordinate_x_first(Fan_Heater_X , Fan_Heater_Y, Z_HIGH, Z_HIGH);
 }
 
 // TODO
 // Perform a single pin transfer and bring the pin back to its starting position.
 void do_pin_transfer(int pin_depth){
-  #define x_over_pin_transfer_chemical_area -1
-  #define y_over_pin_transfer_chemical_area -1
-
-  #define time_for_full_absorption_of_chemicals_in_ms -1
-  #define time_for_full_transfer_of_chemicals_in_ms -1
-
-  #define y_over_pin_transfer_cell_area -1
-  
 
   long depth = convert_mm_to_steps(pin_depth);
 
@@ -751,7 +641,7 @@ void do_pin_transfer(int pin_depth){
 }
 
 // Wash the pin tool.
-void wash_pin_tool(boolean [] wash_steps){
+void wash_pin_tool(boolean * wash_steps){
   // 1. Move pin tool to wash step linear actuator
   for(int wash_step = 0; wash_step < 3; wash_step++){
     if(wash_steps[wash_step]){
@@ -761,29 +651,29 @@ void wash_pin_tool(boolean [] wash_steps){
 }
 
 
-void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps, int plateNum){
+void do_cycle(boolean *wash_steps, int pin_depth, int grab_height, int stack_height, int plateNum){
   progressScreen(plateNum, "Input");
-  take_from_stack(true, height_of_next_plate_in_steps_input_stack);
-  take_from_stack(false, height_of_next_plate_in_steps_input_stack);  
+  take_from_stack(true, grab_height);
+  take_from_stack(false, grab_height);  
   progressScreen(plateNum, "Transfer");
   do_pin_transfer(pin_depth);
   progressScreen(plateNum, "Wash");
   wash_pin_tool(wash_steps);
   progressScreen(plateNum, "Dry");
-  do_fan_and_heat(drying_time);
+  do_fan_and_heat();
   progressScreen(plateNum, "Output");
-  push_onto_stack(true, height_of_next_plate_in_steps_output_stack);
-  push_onto_stack(false, height_of_next_plate_in_steps_output_stack);
+  push_onto_stack(true, stack_height);
+  push_onto_stack(false, stack_height);
 }
 
-void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
+void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
 
   int grab_height = BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1));
   int stack_height = BASE_PLATE_STEPS;
   
   for(int i = 0; i < num_plates; i++){
     
-    do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab, i+1);
+    do_cycle(wash_steps, pin_depth, grab_height, stack_height , i+1);
 
     // Update where the next plate is located at.
     grab_height -= Plate_Offset;
@@ -793,6 +683,7 @@ void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
 /*###########################################################################################*/
 /*LCD Functions*/
+
 // TODO: use the correct pin number
 // LCD configurations on startup
 void configure_lcd()
@@ -978,7 +869,7 @@ int plateNumberInput()
     }
   }
 
-  ptr_ble.set_num_plates(plateNum);
+//  ptr_ble.set_num_plates(plateNum);
 
   return plateNum;
 }
@@ -1364,7 +1255,7 @@ void run_startup(){
   Serial.begin(9600);
 
   // Initialize LCD
-  configure_LCD();
+  configure_lcd();
 
   // Display startup screen
   // 0 -> startup screen
@@ -1376,8 +1267,6 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-  // Add stepper motor objects to MultiStepper object
-  add_all_steppers_to_manager();
 
   // Find reference positions
   calibrate_motors();
@@ -1414,81 +1303,3 @@ void loop() {
 
   redo();
 }
-
-/**
- * 
- * 1. Set up
- * Loop:
-     1. LCD input from user
-  * Cycle:
-  *    2. take a plate from the cell plate stack
-  *        - Position gripper over stack
-  *            - moving gantry to stack x coordinate
-  *            - moving y-axis over stack
-  *            - calculate stack height of plate to grab
-  *            - move gripper (z2) down to plate
-  *            - grab plate
-  *            - move up gripper (z2) some distance to not interfere with anything
-  *            - move it to pin transfer area, move to correct x-y coordinate
-  *            - lower gripper to base
-  *            - ungrip
-  *            - Raise gripper
-  *     3. Repeat step 2 for Chemical stack
-  *     4. Set up for pin transfer
-  *        - move y axis over chemical plate
-  *        - lower pin tool into chemical plate based on pin tool depth given by user
-  *        - maybe some delay for absorption
-  *        -  raise up pin tool
-  *        - move y axis over cell plate
-  *        - lower pin tool (z1) with chemicals into cell plate
-  *        - maybe some delay for transfer
-  *        - move up pin tool to end transfer to get out of the way
-  * 
-  *      5. Move cell plate with chemicals into output stack
-  *          - position gripper over cell plate with chemicals
-  *              - move gantry over plate
-  *          - lower gripper (z2) to pick up plate
-  *          - grip
-  *          - raise plate in gripper
-  *          - move x and y position to output stack
-  *          - calculate height to place plate into stack
-  *          - place plate into stack
-  *          - raise gripper to get out of the way
-  *    
-  *      6. Wash pin tool
-  *          - move x and y over to first cleaning solution selected by user
-  *          - dip pin tool (z1) into cleaning solution .. wait sometime for cleaning
-  *          - move pin tool (z1 ) up and to next cleaning solution if user selected more 
-  *          - repeat previous steps for each solution selected
-  * 
-  *      7. Drying stage
-  *          - position x and y to be over the fan/heater.
-  *          - lower pin tool(z1) some distance over the fan/heater
-  *          - turn on fan and heater
-  *          - delay for some time for drying
-  *          - turn off fan and heater
-  *      8. Reset x,y,z1,z2 positions for another cycle
-  *          - moving gantry over stack
-  * 
-  * 
-  * 
-  *  After all cycles
-  * 
-  *   Infinite loop
-  *   - Ask user if want to do another set of pin transfers
-  *     - if so, go back to the top of the loop to get information -> break out of infinite loop
-  *     - otherwise, stay in infinite loop waiting
-  * 
-  *
-  * 
-  * 
- *           
- *          
- *    
- * 
- * 
- * 
- * 
- * 
- * 
- */

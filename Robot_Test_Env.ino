@@ -674,7 +674,6 @@ void stacking_test(int num_plates, int offset,int steps_until_last_plate){
     long x_start = calibrate_motor(&gantry , x_switch, -1);
     long y_start = calibrate_motor(&motor_y, y_switch ,-1);
 
-
     for(int i = 0 ; i < num_plates; i++){
 
         move_to_coordinate_x_first(1463, 3358, -400, grab_height);
