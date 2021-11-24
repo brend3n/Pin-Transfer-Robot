@@ -1153,16 +1153,16 @@ void calibrate_motors(){
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch, -1);
  
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-  
-
-  gantry.runToNewPosition(x_start);
-  motor_y.runToNewPosition(y_start);
-  motor_z1.runToNewPosition(z1_start);
-  motor_z2.runToNewPosition(z2_start);
+//  motor_z1.setSpeed(SPEED_Z);
+//  motor_z2.setSpeed(SPEED_Z);
+//  gantry.setSpeed(SPEED_GANTRY);
+//  motor_y.setSpeed(SPEED_Y);
+//  
+//
+//  gantry.runToNewPosition(x_start);
+//  motor_y.runToNewPosition(y_start);
+//  motor_z1.runToNewPosition(z1_start);
+//  motor_z2.runToNewPosition(z2_start);
 }
 
 // Test code for verifying limit switches are working
@@ -1488,31 +1488,25 @@ void setup() {
 
 void loop() {
 
-int numPlates;
-int depth;
-bool steps[3];
+int numPlates = 2;
+int depth = 10;
+bool steps[3] = {true, false, false};
   
-  while (true)
-  {
-    plateNumberSetup();
-    while(true)
-    {
-        gripper(OPEN, servo);
-    delay(3000);
-    gripper(CLOSE, servo);
-    }
-    numPlates = plateNumberInput();
-    depthSetup();
-    depth = depthInput();
-    washStepSetup();
-    washStepInput(steps);
-    if (paramCheck(numPlates, depth, steps))
-      break;
-  }
+//  while (true)
+//  {
+//    plateNumberSetup();
+//    numPlates = plateNumberInput();
+//    depthSetup();
+//    depth = depthInput();
+//    washStepSetup();
+//    washStepInput(steps);
+//    if (paramCheck(numPlates, depth, steps))
+//      break;
+//  }
 
   run_all_cycles(steps, numPlates, depth);
 
-  redo();
+//  redo();
 }
 
 
