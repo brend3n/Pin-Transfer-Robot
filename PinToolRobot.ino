@@ -12,7 +12,7 @@
 #include <MCUFRIEND_kbv.h>
 
 // Bluetooth
-#include <AltSoftSerial.h>
+#include <SoftwareSerial.h>
 /*  
   A Phallic Haiku
 
@@ -104,10 +104,13 @@
 #define Solution_3_Z1 -1657
 #define Solution_3_Z2 Z_HIGH
 
-#define Fan_Heater_X 
-#define Fan_Heater_Y
-#define Fan_Heater_Z1
-#define Fan_Heater_Z2
+#define Fan_Heater_X 50
+#define Fan_Heater_Y 50
+#define Fan_Heater_Z1 50
+#define Fan_Heater_Z2 50
+
+#define BLE_RX 22
+#define BLE_TX 23
 
 /*###########################################################################################*/
 /*Servo Pins*/
@@ -144,20 +147,29 @@ MCUFRIEND_kbv tft;
 /*###########################################################################################*/
 /*Bluetooth*/
 
-/*
+
 struct Ptr_Ble {
-  AltSoftSerial bleSerial;
+  void set_num_plates(int val);
+  void update_state();
+  void print_info();
+  void send_data();
+  void update_and_send();
+  
+  SoftwareSerial *bleSerial;
   byte state;
   byte plate_number;
   byte num_plates;
+  // enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, WASHED, DRIED, SRCLOADED, RCPLOADED, DONE};
   enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, WASHED, DRIED, SRCLOADED, RCPLOADED, DONE};
 
   Ptr_Ble() {
+    SoftwareSerial ble(BLE_RX, BLE_TX);
+    *bleSerial = ble;
     state = CALIBRATING;
     plate_number = 0;
     num_plates = -1;
   }
-}
+};
 
 // Set this when the LCD gives it to you
 void Ptr_Ble::set_num_plates(int val) {
@@ -199,18 +211,19 @@ void Ptr_Ble::print_info() {
 
 // helper
 void Ptr_Ble::send_data() {
-  bleSerial.write(plate_number * 10 + state);
+  bleSerial->write(plate_number * 10 + state);
   // Just for good measure.
   delay(100);
 }
 
-void Ptr_Ble:update_and_send() {
+void Ptr_Ble::update_and_send() {
   update_state();
   send_data();
 }
 
+
 Ptr_Ble ptr_ble;
-*/
+
 /*###########################################################################################*/
 /*Other Pin Definitions*/
 
@@ -221,8 +234,8 @@ Ptr_Ble ptr_ble;
 #define z2_switch 24
 
 // Pins for fan and heater N-Channel MOSFET gate pin
-#define fan_pin         4
-#define heater_pin      4
+#define fan_pin         34
+#define heater_pin      36
 
 /*###########################################################################################*/
 /*CONTSTANTS*/
@@ -654,16 +667,42 @@ void wash_pin_tool(boolean * wash_steps){
 void do_cycle(boolean *wash_steps, int pin_depth, int grab_height, int stack_height, int plateNum){
   progressScreen(plateNum, "Input");
   take_from_stack(true, grab_height);
-  take_from_stack(false, grab_height);  
+
+  // Source Microplate unloaded
+  ptr_ble.update_and_send();
+  take_from_stack(false, grab_height);
+
+  // Recipient Microplate unloaded
+  ptr_ble.update_and_send();
+   
   progressScreen(plateNum, "Transfer");
   do_pin_transfer(pin_depth);
+
+  // Pin Transfer Operation Complete
+  ptr_ble.update_and_send();
+  
   progressScreen(plateNum, "Wash");
   wash_pin_tool(wash_steps);
+
+  // Pin Tool Washed
+  ptr_ble.update_and_send();
+  
   progressScreen(plateNum, "Dry");
   do_fan_and_heat();
+
+  // Pin Tool Dried
+  ptr_ble.update_and_send();
   progressScreen(plateNum, "Output");
+
   push_onto_stack(true, stack_height);
+
+  // Source Microplate loaded onto stack
+  ptr_ble.update_and_send();
+  
   push_onto_stack(false, stack_height);
+
+  // Recipient Microplate loaded onto stack
+  ptr_ble.update_and_send();
 }
 
 void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
@@ -869,7 +908,7 @@ int plateNumberInput()
     }
   }
 
-//  ptr_ble.set_num_plates(plateNum);
+  ptr_ble.set_num_plates(plateNum);
 
   return plateNum;
 }
@@ -1267,15 +1306,17 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-
+  // ptr_ble in calibrating state
+  ptr_ble.send_data();
   // Find reference positions
   calibrate_motors();
+  ptr_ble.update_and_send();
 }
 
 void setup() {
 
   // 9600 is the AT-Command baud rate
-  BTserial.begin(9600);  
+  ptr_ble.bleSerial->begin(9600);  
 
 
   run_startup();
