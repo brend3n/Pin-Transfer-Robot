@@ -624,20 +624,40 @@ void push_onto_stack(int stack, int height_to_put_on){
 void do_wash(short wash_step){
 
 
+  #define pintool_into_solution -1
+  
+  #define x_over_solution_1 -1
+  #define y_over_solution_1 -1
+
+  #define x_over_solution_2 -1
+  #define y_over_solution_2 -1
+
+  #define x_over_solution_3 -1
+  #define y_over_solution_3 -1
+
+
+  #define time_in_solution_ms -1
+  
   // Solution 1
   if(wash_step == 1){
     // Move to Solution 1
-    dip_pin_tool();
+    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, pintool_into_solution, -100);
+    delay(time_in_solution_ms);
+    move_to_coordinate_x_first(x_over_solution_1, y_over_solution_1, -100, -100);
   }
   // Solution 2
   else if(wash_step == 2){
     // Move to Solution 2
-    dip_pin_tool();
+    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, pintool_into_solution, -100);
+    delay(time_in_solution_ms);
+    move_to_coordinate_x_first(x_over_solution_2, y_over_solution_2, -100, -100);   
   }
   // Solution 3
   else if(wash_step == 3){
     // Move to Solution 3
-    dip_pin_tool();
+    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, pintool_into_solution, -100);
+    delay(time_in_solution_ms);
+    move_to_coordinate_x_first(x_over_solution_3, y_over_solution_3, -100, -100); 
   }
 
 }
@@ -669,17 +689,46 @@ void heat_off(){
 // WORKS
 // Allows fan and hearter to draw from power supply
 void do_fan_and_heat(int drying_time_ms){
+ #define x_over_fan -1
+  #define y_over_fan -1
+  #define pin_tool_over_fan -1
+  
+  // Move pin tool over the fan
+  move_to_coordinate_x_first(x_over_fan, y_over_fan, pin_tool_over_fan, -100);
   fan_on();
   heat_on();
   delay(drying_time_ms);
   heat_off();
   fan_off();
   delay(drying_time_ms);
+  move_to_coordinate_x_first(x_over_fan, y_over_fan, -100, -100);
 }
 
 // TODO
 // Perform a single pin transfer and bring the pin back to its starting position.
 void do_pin_transfer(){
+  #define x_over_pin_transfer_chemical_area -1
+  #define y_over_pin_transfer_chemical_area -1
+
+  #define time_for_full_absorption_of_chemicals_in_ms -1
+  #define time_for_full_transfer_of_chemicals_in_ms -1
+
+  #define y_over_pin_transfer_cell_area -1
+  
+
+  long depth = convert_mm_to_steps(pin_depth);
+
+  // Move to chemical plate to absorb chemicals in pin tool also dipping pin tool in chemical plate
+  move_to_coordinate_x_first(x_over_pin_transfer_chemical_area,y_over_pin_transfer_chemical_area, depth, -100);
+  delay(time_for_full_absorption_of_chemicals_in_ms);
+
+  // Moving pin tool out of chemical plate
+  move_to_coordinate_z_first(x_over_pin_transfer_chemical_area, y_over_pin_transfer_chemical_area, -100, -100);
+  // Moving pin tool to cell plate and transfer chemicals to cells
+  move_to_coordinate_x_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, depth, -100);
+  delay(time_for_full_transfer_of_chemicals_in_ms);
+  // Moving pin tool out of cell plate
+  move_to_coordinate_z_first(x_over_pin_transfer_cell_area, y_over_pin_transfer_cell_area, -100, -100);
 
 }
 
@@ -707,16 +756,18 @@ void dry_pin_tool(){
 // TODO
 // TEST
 void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_of_next_plate_in_steps, int plateNum){
-   progressScreen(plateNum, "Input");
-   take_from_stack();
-   progressScreen(plateNum, "Transfer");
-   do_pin_transfer();
-   progressScreen(plateNum, "Wash");
-   wash_pin_tool(wash_steps);
-   progressScreen(plateNum, "Dry");
-   dry_pin_tool();
-   progressScreen(plateNum, "Output");
-   push_onto_stack();
+  progressScreen(plateNum, "Input");
+  take_from_stack(true, height_of_next_plate_in_steps_input_stack);
+  // Cell stack
+  take_from_stack(false, height_of_next_plate_in_steps_input_stack);   progressScreen(plateNum, "Transfer");
+  do_pin_transfer(pin_depth);
+  progressScreen(plateNum, "Wash");
+  wash_pin_tool(wash_steps);
+  progressScreen(plateNum, "Dry");
+  dry_pin_tool(drying_time);
+  progressScreen(plateNum, "Output");
+  push_onto_stack(true, height_of_next_plate_in_steps_output_stack);
+  push_onto_stack(false, height_of_next_plate_in_steps_output_stack);
 }
 
 // TODO
@@ -725,15 +776,19 @@ void do_cycle(boolean [] wash_steps, int pin_depth, int drying_time, int height_
 void run_all_cycles(boolean [] wash_steps, short num_plates, int pin_depth ){
 
    
+  #define drying_time -1
+   
   double height_of_stack = (num_plates * plate_height_in_mm);
-  double height_of_next_plate_to_grab = convert_mm_to_steps(height_of_stack);
-
+  // NEED TO DETERMINE THESE
+  double height_of_next_plate_in_steps_input_stack = convert_mm_to_steps(height_of_stack);
+  double height_of_next_plate_in_steps_output_stack;
   for(int i = 0; i < num_plates; i++){
     
     do_cycle(wash_steps, pin_depth, drying_time, height_of_next_plate_to_grab, i+1);
 
     // Update where the next plate is located at.
     height_of_next_plate_to_grab -= plate_height_in_steps;
+    height_of_next_plate_in_steps_output_stack += ;
   }
 }
 
