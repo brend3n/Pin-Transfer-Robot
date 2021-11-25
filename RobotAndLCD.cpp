@@ -1005,10 +1005,10 @@ MCUFRIEND_kbv tft;
 /*Other Pin Definitions*/
 
 // Limit switch pins definitions
-#define y_switch 26
+#define y_switch 24
 #define x_switch 25
-#define z1_switch 29
-#define z2_switch 24
+#define z1_switch 26
+#define z2_switch 29
 
 // Pins for fan and heater N-Channel MOSFET gate pin
 #define fan_pin         34
@@ -1483,7 +1483,6 @@ void setup() {
   pinMode(13, OUTPUT);
   greeting();
 
-  run_startup();
 }
 
 void loop() {
@@ -1502,6 +1501,8 @@ void loop() {
    washStepInput(steps);
    if (paramCheck(numPlates, depth, steps))
      break;
+
+   run_startup();
  }
 
   run_all_cycles(steps, numPlates, depth);
@@ -2015,7 +2016,7 @@ void progressScreen(int plateNum, String location)
   tft.print(location);
 }
 
-boolean redo()
+void redo()
 {
   tft.fillScreen(BLACK);
   tft.setCursor(25, 120);
@@ -2039,8 +2040,7 @@ boolean redo()
       Serial.println(y);
       Serial.println();
       if (x >= 106 && x <= 214 && y >= 90 && y <= 105)
-        return true;
+        break;
     }
   }
-  return true;
 }

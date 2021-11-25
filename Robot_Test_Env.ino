@@ -26,10 +26,10 @@
 #define UP 500
 #define DOWN -500
 
-#define y_switch 26
+#define y_switch 24
 #define x_switch 25
-#define z1_switch 29
-#define z2_switch 24
+#define z1_switch 26
+#define z2_switch 29
 
 // Joy-stick controller
 #define x_dir     A0
@@ -851,13 +851,13 @@ void depth_test(int mm){
 }
 void loop(){
 
-//  test_limit_switches();
+ test_limit_switches();
 // get_absolute_positions();
 // move_y();
 //position_test();
 
 // -1881 base 
-stacking_test(3, 319, -1881);
+// stacking_test(3, 319, -1881);
 
 
 }
