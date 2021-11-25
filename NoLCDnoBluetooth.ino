@@ -1469,6 +1469,4 @@ void loop() {
   int depth = 10;
 
   run_all_cycles(steps, num_plates, depth);
-
-//test_limit_switches();
 }
