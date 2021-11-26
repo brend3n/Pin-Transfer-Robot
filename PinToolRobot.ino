@@ -430,7 +430,7 @@ void do_wash(int wash_step){
   // Solution 1
   if(wash_step == 0){
     // Move to Solution 1
-    for(int i = 0; i < 1; i++){
+    for(int i = 0; i < 3; i++){
       move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Solution_1_Z1, Z_HIGH);
       delay(time_in_solution_ms);
       move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Z_HIGH, Z_HIGH);  
