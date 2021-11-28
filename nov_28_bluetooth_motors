@@ -345,8 +345,6 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
         motor->runSpeed();
     }
 
-    // ERASE THIS LATER OR ELSE I WILL KILL A MANATEE WITH MY BARE TEETH AND GIVE THE MANATEE TAIL TO MY FRIEND ADOMININC AND THEN I WILL SAY WPAJ THERE BUDYDDYN WHY ARENT YPU LOOKING AT ME 
-    delay(0);
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
@@ -387,18 +385,6 @@ void calibrate_motors(){
 
   Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch, -1);
-
- 
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-//  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-  
-
-  // gantry.runToNewPosition(x_start);
-  // motor_y.runToNewPosition(y_start);
-  // motor_z1.runToNewPosition(z1_start);
-  // motor_z2.runToNewPosition(z2_start);
 }
 
 // Test code for verifying limit switches are working
@@ -1256,9 +1242,7 @@ void run_startup(){
 
   // LCD Startup function
   lcd_startup();
-  Serial.print("before greeting");
   greeting();
-  Serial.print("after greeting");
 
   // Set the state of any pins used as inputs
   set_pins();
@@ -1266,21 +1250,18 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-  Serial.println("Press x_limit_switch to start calibration");
-  while(true){
-    servo.write(0);
-    if(digitalRead(x_switch)== LOW){
-      Serial.println("Starting calibration.");
-      break;
-    }
-  }
+//   Serial.println("Press x_limit_switch to start calibration");
+//   while(true){
+//     servo.write(0);
+//     if(digitalRead(x_switch)== LOW){
+//       Serial.println("Starting calibration.");
+//       break;
+//     }
+//   }
 }
-//SoftwareSerial ble(BLE_RX, BLE_TX);
-void setup() {
 
+void setup() {
   Serial.begin(9600);
-  //ble.begin(9600);
- 
   run_startup();
 }
 
@@ -1302,13 +1283,10 @@ void loop() {
       progressScreen(0, "Waiting");
       break;
   }
-    Serial.println("before beginning serial");
     // Find reference positions
     ptr_ble.send_data();
-    Serial.print("after sending data");
     calibrate_motors();
     ptr_ble.update_and_send();
-    Serial.print("after updating and sending");
 
   run_all_cycles(steps, numPlates, depth);
 
