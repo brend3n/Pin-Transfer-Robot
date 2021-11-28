@@ -419,8 +419,8 @@ void get_absolute_positions(){
 
   long z1_start;
 
-//  Serial.println("Calibrating Z1");
-//  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
+  //  Serial.println("Calibrating Z1");
+  //  long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
 
   Serial.println("Calibrating Z2");
   long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
@@ -434,7 +434,7 @@ void get_absolute_positions(){
 
   
  
-//  motor_z1.setSpeed(SPEED_Z);
+  //  motor_z1.setSpeed(SPEED_Z);
   motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
@@ -444,7 +444,7 @@ void get_absolute_positions(){
 
   gantry.runToNewPosition(x_start);
   motor_y.runToNewPosition(y_start);
-//  motor_z1.runToNewPosition(z1_start);
+  //  motor_z1.runToNewPosition(z1_start);
   motor_z2.runToNewPosition(z2_start);
     
   
@@ -851,8 +851,8 @@ void depth_test(int mm){
 }
 void loop(){
 
- test_limit_switches();
-// get_absolute_positions();
+//  test_limit_switches();
+get_absolute_positions();
 // move_y();
 //position_test();
 

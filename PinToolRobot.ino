@@ -5,6 +5,20 @@
 // Servos
 #include <Servo.h>
 
+// LCD
+#include <Adafruit_GFX.h>
+#include <MCUFRIEND_kbv.h>
+#include <TouchScreen.h>
+#include <SoftwareSerial.h>
+
+/*  
+  A Phallic Haiku
+
+  PENIS PENIS PE
+  PENUS PENSUS PENYASSS BITCH 
+  PENUS SNIP SNIP SNIP
+*/
+
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
 
@@ -28,6 +42,7 @@
 /*Position Constants*/
 
 #define Z_HIGH -100
+#define Z_WASH_HIGH -800
 
 #define drying_time_ms 10000
 #define time_in_solution_ms 1000
@@ -56,7 +71,10 @@
 
 #define Chemical_Input_Stack_X 2063
 #define Chemical_Input_Stack_Y 6091
-#define Chemical_Output_Stack_X 899
+//#define Chemical_Output_Stack_X 899
+//#define Chemical_Output_Stack_Y 6016
+
+#define Chemical_Output_Stack_X 873
 #define Chemical_Output_Stack_Y 6016
 
 #define Cell_Transfer_Area_Gripper_X 1463
@@ -69,11 +87,11 @@
 #define Chemical_Transfer_Area_Gripper_Z1 Z_HIGH
 #define Chemical_Transfer_Area_Gripper_Z2 BASE_PLATE_STEPS
 
-#define Cell_Transfer_Area_Pin_Tool_X 843.5
-#define Cell_Transfer_Area_Pin_Tool_Y 3281
+#define Cell_Transfer_Area_Pin_Tool_X 845
+#define Cell_Transfer_Area_Pin_Tool_Y 3294
 
-#define Chemical_Transfer_Area_Pin_Tool_X 836
-#define Chemical_Transfer_Area_Pin_Tool_Y 5949
+#define Chemical_Transfer_Area_Pin_Tool_X 841
+#define Chemical_Transfer_Area_Pin_Tool_Y 5962
 
 #define Solution_1_X 1451
 #define Solution_1_Y 486
@@ -106,11 +124,103 @@
 
 /*###########################################################################################*/
 /* LCD Pin Definitions*/
-
+#define YP A3  
+#define XM A2  
+#define YM 9   
+#define XP 8 
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+#define LCD_CS A3
+#define LCD_CD A2
+#define LCD_WR A1
+#define LCD_RD A0
+#define LCD_RESET A4
+MCUFRIEND_kbv tft;
+#define BLACK 0x0000
+#define WHITE 0xFFFF
 
 
 /*###########################################################################################*/
 /*Bluetooth*/
+
+#define BLE_RX 51
+#define BLE_TX 53
+
+
+struct Ptr_Ble {
+  void set_num_plates(int val);
+  void update_state();
+  void print_info();
+  void send_data();
+  void update_and_send();
+  
+  SoftwareSerial *bleSerial;
+  byte state;
+  byte plate_number;
+  byte num_plates;
+  // enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, WASHED, DRIED, SRCLOADED, RCPLOADED, DONE};
+  enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, SRCLOADED, RCPLOADED, WASHED, DRIED, DONE};
+
+  Ptr_Ble() {
+    SoftwareSerial ble(BLE_RX, BLE_TX);
+    *bleSerial = ble;
+    state = CALIBRATING;
+    plate_number = 0;
+    num_plates = -1;
+  }
+};
+
+// Set this when the LCD gives it to you
+void Ptr_Ble::set_num_plates(int val) {
+  num_plates = val;
+}
+
+// helper
+// update according to the states
+// shown in the enum
+void Ptr_Ble::update_state() {
+  if (plate_number == num_plates) {
+    if (state == DRIED) {
+      state = DONE;
+    } else if (state != DONE) {
+      state++;
+    }
+
+    return;
+  }
+
+  if (state == DRIED) {
+    if (plate_number == num_plates) {
+      state = DONE;
+      return;
+    }
+
+    plate_number++;
+    state = SRCUNLOADED;
+    return;
+  }
+
+  state++;
+}
+
+// for debugging purposes
+void Ptr_Ble::print_info() {
+  Serial.print("num_plates:"); Serial.print(num_plates); Serial.print(" state:"); Serial.println(state);
+}
+
+// helper
+void Ptr_Ble::send_data() {
+  bleSerial->write(plate_number * 10 + state);
+  // Just for good measure.
+  delay(100);
+}
+
+void Ptr_Ble::update_and_send() {
+  update_state();
+  send_data();
+}
+
+
+Ptr_Ble ptr_ble;
 
 /*###########################################################################################*/
 /*Other Pin Definitions*/
@@ -129,15 +239,19 @@
 /*CONTSTANTS*/
 
 // Motor speeds
-#define SPEED_GANTRY 100
-#define SPEED_Y      200
-#define SPEED_Z      100
+#define SPEED_GANTRY 300
+#define SPEED_Y      400
+#define SPEED_Z      150
 
-#define SPEED_Z1     100
-#define SPEED_Z2     100
+#define SPEED_Z1     150
+#define SPEED_Z2     150
+
+
+#define ACCELERATION_Y 200
+#define ACCELERATION_GANTRY 200
 
 // Speed of all the motors
-#define MAX_SPEED             150
+#define MAX_SPEED             500
 #define MAX_ACCELERATION      100
 
 #define DELAY                 500 // Half a second
@@ -152,6 +266,8 @@
 
 // Change to false to do polling
 #define INTERRUPTS_ENABLED false
+
+
 
 /*###########################################################################################*/
 
@@ -202,10 +318,18 @@ void configure_motors(){
     motor_z2.setMaxSpeed(MAX_SPEED);
 
     // Set acceleration
-    gantry.setAcceleration(MAX_ACCELERATION);
-    motor_y.setAcceleration(MAX_ACCELERATION);
+    gantry.setAcceleration(ACCELERATION_GANTRY);
+    motor_y.setAcceleration(ACCELERATION_Y);
     motor_z1.setAcceleration(MAX_ACCELERATION);
     motor_z2.setAcceleration(MAX_ACCELERATION);
+}
+
+void set_acceleration(int acceleration){
+    // Set acceleration
+    gantry.setAcceleration(acceleration);
+    motor_y.setAcceleration(acceleration);
+    motor_z1.setAcceleration(acceleration);
+    motor_z2.setAcceleration(acceleration);
 }
 
 // Calibrates a single motor given by &motor and a limit switch
@@ -426,14 +550,18 @@ void push_onto_stack(int stack, int height_to_put_on){
 
 // TODO
 void do_wash(int wash_step){
+
+  set_acceleration(200);
+
   
   // Solution 1
   if(wash_step == 0){
     // Move to Solution 1
     for(int i = 0; i < 3; i++){
+      
       move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Solution_1_Z1, Z_HIGH);
       delay(time_in_solution_ms);
-      move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Z_HIGH, Z_HIGH);  
+      move_to_coordinate_x_first(Solution_1_X, Solution_1_Y, Z_WASH_HIGH, Z_HIGH);  
     }
   }
   // Solution 2
@@ -442,7 +570,7 @@ void do_wash(int wash_step){
     for(int i = 0; i < 3;i++){
       move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Solution_2_Z1, Z_HIGH);
       delay(time_in_solution_ms);
-      move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Z_HIGH, Z_HIGH);     
+      move_to_coordinate_x_first(Solution_2_X, Solution_2_Y, Z_WASH_HIGH, Z_HIGH);     
     }
   }
   // Solution 3
@@ -451,9 +579,11 @@ void do_wash(int wash_step){
     for(int i = 0;i < 3; i++){
       move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Solution_3_Z1, Z_HIGH);
       delay(time_in_solution_ms);
-      move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Z_HIGH, Z_HIGH);   
+      move_to_coordinate_x_first(Solution_3_X, Solution_3_Y, Z_WASH_HIGH, Z_HIGH);   
     }
   }
+
+  set_acceleration(MAX_ACCELERATION);
 }
 
 // WORKS
@@ -528,14 +658,30 @@ void wash_pin_tool(boolean * wash_steps){
 
 
 void do_cycle(boolean *wash_steps, int pin_depth, int grab_height, int stack_height, int plateNum){
-  
+  progressScreen(plateNum, "Input");
   take_from_stack(true, grab_height);
+  ptr_ble.update_and_send();
   take_from_stack(false, grab_height);
+  ptr_ble.update_and_send();
+
+  progressScreen(plateNum, "Transfer");
   do_pin_transfer(pin_depth);
-   wash_pin_tool(wash_steps);
-  do_fan_and_heat();
-  push_onto_stack(true, stack_height);
+  ptr_ble.update_and_send();
+
+  progressScreen(plateNum, "Output");
   push_onto_stack(false, stack_height);
+  ptr_ble.update_and_send();
+  push_onto_stack(true, stack_height);
+  ptr_ble.update_and_send();
+
+  progressScreen(plateNum, "Wash");
+  wash_pin_tool(wash_steps);
+  ptr_ble.update_and_send();
+
+  progressScreen(plateNum, "Dry");
+  do_fan_and_heat();
+  ptr_ble.update_and_send();
+  
 }
 
 void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
@@ -555,7 +701,551 @@ void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
 
 /*###########################################################################################*/
 /*LCD Functions*/
+void lcd_startup()
+{
+  tft.reset();
+  uint16_t identifier = tft.readID();
+  tft.begin(identifier);
+  tft.setRotation(2);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(2);
+  pinMode(13, OUTPUT);
+}
 
+void greeting()
+{
+  tft.fillScreen(BLACK);
+  tft.setCursor(40,120);
+  tft.println("Welcome to the");
+  tft.setCursor(43,140);
+  tft.println("automated Pin");
+  tft.setCursor(40,160);
+  tft.println("Transfer Tool!");
+  delay(3000);
+}
+
+// Screen setup for plate input
+void plateNumberSetup()
+{
+  // Reset screen
+  tft.fillScreen(BLACK);
+  // Instructions
+  tft.setCursor(33,20);
+  tft.println("How many plates");
+  tft.setCursor(38,40);
+  tft.println("would you like");
+  tft.setCursor(75,60);
+  tft.println("to use?");
+  
+  // Buttons
+  tft.drawRect(70, 135, 30, 30, WHITE);
+  tft.setCursor(80,143);
+  tft.println("1");
+  tft.drawRect(105, 135, 30, 30, WHITE);
+  tft.setCursor(115,143);
+  tft.println("2");
+  tft.drawRect(140, 135, 30, 30, WHITE);
+  tft.setCursor(150,143);
+  tft.println("3");
+  tft.drawRect(70, 170, 30, 30, WHITE);
+  tft.setCursor(80,178);
+  tft.println("4");
+  tft.drawRect(105, 170, 30, 30, WHITE);
+  tft.setCursor(115,178);
+  tft.println("5");
+  tft.drawRect(140, 170, 30, 30, WHITE);
+  tft.setCursor(150,178);
+  tft.println("6");
+  tft.drawRect(70, 205, 30, 30, WHITE);
+  tft.setCursor(80,213);
+  tft.println("7");
+  tft.drawRect(105, 205, 30, 30, WHITE);
+  tft.setCursor(115,213);
+  tft.println("8");
+  tft.drawRect(140, 205, 30, 30, WHITE);
+  tft.setCursor(150,213);
+  tft.println("9");
+  tft.drawRect(105, 240, 30, 30, WHITE);
+  tft.setCursor(115,248);
+  tft.println("0");
+  tft.setCursor(80, 278);
+  tft.println("CONFIRM");
+  tft.setCursor(90, 300);
+  tft.println("CLEAR");
+}
+
+// User inputs number of plates they wish to use
+int plateNumberInput()
+{
+  int plateNum = -1;
+  while (true)
+  {
+    digitalWrite(13, HIGH);
+    TSPoint point = ts.getPoint();
+    digitalWrite(13, LOW);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
+    if (point.z  >= 200 && point.z <= 1500)
+    {
+      int x = map(point.x, 78, 951, 0, 320);
+      int y = map(point.y, 96, 921, 0, 240);
+
+      if (x >= 185 && x <= 220 && y >= 109 && y <= 127)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        plateNum = 1;
+        tft.setCursor(115, 100);
+        tft.print("1");
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 107 && y <= 129)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        plateNum = 2;
+        tft.setCursor(115, 100);
+        tft.print("2");
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 107 && y <= 129)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("3");
+        plateNum = 3;
+        delay(1000);
+      }
+      else if (x >= 185 && x <= 220 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("4");
+        plateNum = 4;
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("5");
+        plateNum = 5;
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("6");
+        plateNum = 6;
+        delay(1000);
+      }
+      else if (x >= 185 && x <= 220 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("7");
+        plateNum = 7;
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("8");
+        plateNum = 8;
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("9");
+        plateNum = 9;
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 28 && y <= 50)
+      {
+        tft.fillRect(105, 90, 30, 30, BLACK);
+        tft.setCursor(115, 100);
+        tft.print("0");
+        plateNum = 0;
+        delay(1000);
+      }
+      else if (x >= 103 && x <= 208 && y >= 13 && y <= 22 && plateNum != -1)
+        break;
+      else if (x >= 120 && x <= 195 && y >= -2 && y <= 6)
+      {
+        plateNum = -1;
+        tft.fillRect(105, 90, 30, 30, BLACK);
+      }
+    }
+  }
+
+  ptr_ble.set_num_plates(plateNum);
+
+  return plateNum;
+}
+
+void depthSetup()
+{
+  // Reset screen
+  tft.fillScreen(BLACK);
+  // Instructions
+  tft.setCursor(33,20);
+  tft.println("How deep would");
+  tft.setCursor(13,40);
+  tft.println("you like to insert");
+  tft.setCursor(40,60);
+  tft.println("the pin tool?");
+  
+  // Buttons
+  tft.drawRect(70, 135, 30, 30, WHITE);
+  tft.setCursor(80,143);
+  tft.println("1");
+  tft.drawRect(105, 135, 30, 30, WHITE);
+  tft.setCursor(115,143);
+  tft.println("2");
+  tft.drawRect(140, 135, 30, 30, WHITE);
+  tft.setCursor(150,143);
+  tft.println("3");
+  tft.drawRect(70, 170, 30, 30, WHITE);
+  tft.setCursor(80,178);
+  tft.println("4");
+  tft.drawRect(105, 170, 30, 30, WHITE);
+  tft.setCursor(115,178);
+  tft.println("5");
+  tft.drawRect(140, 170, 30, 30, WHITE);
+  tft.setCursor(150,178);
+  tft.println("6");
+  tft.drawRect(70, 205, 30, 30, WHITE);
+  tft.setCursor(80,213);
+  tft.println("7");
+  tft.drawRect(105, 205, 30, 30, WHITE);
+  tft.setCursor(115,213);
+  tft.println("8");
+  tft.drawRect(140, 205, 30, 30, WHITE);
+  tft.setCursor(150,213);
+  tft.println("9");
+  tft.drawRect(105, 240, 30, 30, WHITE);
+  tft.setCursor(115,248);
+  tft.println("0");
+  tft.setCursor(80, 278);
+  tft.println("CONFIRM");
+  tft.setCursor(90, 300);
+  tft.println("CLEAR");
+}
+
+int depthInput()
+{
+  String depth = "";
+  int x_cursor = 115;
+  while (true)
+  {
+    digitalWrite(13, HIGH);
+    TSPoint point = ts.getPoint();
+    digitalWrite(13, LOW);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
+    if (point.z  >= 200 && point.z <= 1500)
+    {     
+      int x = map(point.x, 78, 951, 0, 320);
+      int y = map(point.y, 96, 921, 0, 240);
+
+      if (x >= 185 && x <= 220 && y >= 109 && y <= 127)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("1");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 107 && y <= 129)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("2");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 107 && y <= 129)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("3");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 185 && x <= 220 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("4");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("5");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 80 && y <= 101)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("6");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 185 && x <= 220 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+       x_cursor -= 7;
+        depth.concat("7");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("8");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 95 && x <= 132 && y >= 55 && y <= 75)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("9");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 140 && x <= 175 && y >= 28 && y <= 50)
+      {
+        tft.fillRect(0, 90, 240, 30, BLACK);
+        tft.setCursor(x_cursor, 100);
+        x_cursor -= 7;
+        depth.concat("0");
+        tft.print(depth);
+        delay(1000);
+      }
+      else if (x >= 103 && x <= 208 && y >= 13 && y <= 22 && depth != "")
+        break;
+      else if (x >= 120 && x <= 195 && y >= -2 && y <= 6)
+      {
+        x_cursor = 115;
+        depth = "";
+        tft.fillRect(0, 90, 240, 30, BLACK);
+      }
+    }
+  }
+  return depth.toInt();
+}
+
+void washStepSetup()
+{
+  // Reset screen
+  tft.fillScreen(BLACK);
+  // Instructions
+  tft.setCursor(19, 20);
+  tft.println("Select which wash");
+  tft.setCursor(30, 40);
+  tft.println("steps you would");
+  tft.setCursor(47, 60);
+  tft.println("like to use.");
+
+  // Check boxes
+  tft.drawRect(150, 115, 30, 30, WHITE);
+  tft.drawRect(150, 165, 30, 30, WHITE);
+  tft.drawRect(150, 215, 30, 30, WHITE);
+
+  // Wash step numbers
+  tft.setCursor(55, 123);
+  tft.print("1 -----");
+  tft.setCursor(55, 173);
+  tft.print("2 -----");
+  tft.setCursor(55, 223);
+  tft.print("3 -----");
+  tft.setCursor(80, 280);
+  tft.print("CONFIRM");
+}
+
+void washStepInput(bool * steps)
+{
+  steps[0] = false;
+  steps[1] = false;
+  steps[2] = false;
+      
+  while (true)
+  {
+    digitalWrite(13, HIGH);
+    TSPoint point = ts.getPoint();
+    digitalWrite(13, LOW);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
+    if (point.z  >= 200 && point.z <= 1500)
+    {
+      int x = map(point.x, 78, 951, 0, 320);
+      int y = map(point.y, 96, 921, 0, 240);
+
+      if (x >= 83 && x <= 119 && y >= 122 && y <= 145)
+      {
+        if (!steps[0])
+        {
+          tft.drawLine(151, 116, 178, 143, WHITE);
+          tft.drawLine(178, 116, 151, 143, WHITE);
+          steps[0] = true;
+          delay(500);
+        }
+        else
+        {
+          tft.fillRect(151, 116, 28, 28, BLACK);
+          steps[0] = false;
+          delay(500);
+        }         
+      }
+      else if (x >= 83 && x <= 119 && y >= 83 && y <= 108)
+      { 
+        if (!steps[1])
+        {
+          tft.drawLine(151, 166, 178, 193, WHITE);
+          tft.drawLine(178, 166, 151, 193, WHITE);
+          steps[1] = true;
+          delay(500);
+        }
+        else
+        {
+          tft.fillRect(151, 166, 28, 28, BLACK);
+          steps[1] = false;
+          delay(500);
+        }      
+      }
+      else if (x >= 83 && x <= 119 && y >= 45 && y <= 70)
+      {  
+        if (!steps[2])
+        {
+          tft.drawLine(151, 216, 178, 243, WHITE);
+          tft.drawLine(178, 216, 151, 243, WHITE);
+          steps[2] = true;
+          delay(500);
+        }
+        else
+        {
+          tft.fillRect(151, 216, 28, 28, BLACK);
+          steps[2] = false;
+          delay(500);
+        }     
+      }
+      else if (x >= 105 && x <= 211 && y >= 10 && y <= 22) 
+        break;
+    }
+  }
+}
+
+bool paramCheck(int plateNum, int depth, bool * steps)
+{
+  tft.fillScreen(BLACK);
+  tft.setCursor(19, 20);
+  tft.println("Accept parameters");
+  tft.setCursor(50, 40);
+  tft.println("and continue");
+  tft.setCursor(62, 60);
+  tft.println("to the pin");
+  tft.setCursor(20, 80);
+  tft.println("transfer process?");
+
+  tft.setCursor(0, 140);
+  tft.print("Number of Plates: ");
+  tft.print(plateNum);
+  tft.setCursor(0, 160);
+  tft.print("Pin Tool Depth: ");
+  tft.print(depth);
+  tft.setCursor(0, 180);
+  tft.print("Wash Steps: ");
+  if (steps[0] == 1)
+    tft.print("1 ");
+  if (steps[1] == 1)
+    tft.print("2 ");
+  if (steps[2] == 1)
+    tft.print("3 ");
+
+  tft.setCursor(20, 240);
+  tft.print("CONFIRM");
+  tft.setCursor(173, 240);
+  tft.print("REDO");
+
+  while (true)
+  {
+    digitalWrite(13, HIGH);
+    TSPoint point = ts.getPoint();
+    digitalWrite(13, LOW);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
+    if (point.z  >= 200 && point.z <= 1500)
+    {
+      int x = map(point.x, 78, 951, 0, 320);
+      int y = map(point.y, 96, 921, 0, 240);
+
+      if (x >= 182 && x <= 283 && y >= 37 && y <= 50)
+        return true;
+      else if (x >= 35 && x <= 93 && y >= 37 && y <= 50)
+        return false;
+    }
+  }
+  return false;
+}
+
+void progressScreen(int plateNum, String location)
+{
+  tft.fillRect(154, 115, 30, 30, BLACK);
+  tft.fillRect(130, 155, 120, 30, BLACK);
+  tft.setCursor(70, 120);
+  tft.print("Plate #");
+  tft.print(plateNum);
+  tft.setCursor(20, 160);
+  tft.print("Location: ");
+  tft.print(location);
+}
+
+void redo()
+{
+  tft.fillScreen(BLACK);
+  tft.setCursor(25, 120);
+  tft.print("Run more plates?");
+  tft.setCursor(80, 170);
+  tft.print("CONFIRM");
+  tft.drawRect(75, 165, 92, 25, WHITE);
+
+  while (true)
+  {
+    digitalWrite(13, HIGH);
+    TSPoint point = ts.getPoint();
+    digitalWrite(13, LOW);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
+    if (point.z  >= 200 && point.z <= 1500)
+    {
+      int x = map(point.x, 78, 951, 0, 320);
+      int y = map(point.y, 96, 921, 0, 240);
+      Serial.println(x);
+      Serial.println(y);
+      Serial.println();
+      if (x >= 106 && x <= 214 && y >= 90 && y <= 105)
+        break;
+    }
+  }
+}
 
 /*###########################################################################################*/
 
@@ -563,14 +1253,17 @@ void run_startup(){
   // TESTING: Begin serial connection for debugging
   Serial.begin(9600);
 
+  // LCD Startup function
+  lcd_startup();
+  greeting();
+
   // Set the state of any pins used as inputs
   set_pins();
-  
 
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-
+  Serial.println("Press x_limit_switch to start calibration");
   while(true){
     servo.write(0);
     if(digitalRead(x_switch)== LOW){
@@ -579,10 +1272,10 @@ void run_startup(){
     }
   }
   // Find reference positions
+  ptr_ble.send_data();
   calibrate_motors();
-
+  ptr_ble.update_and_send();
 }
-
 
 void setup() {
   Serial.begin(9600);
@@ -590,11 +1283,22 @@ void setup() {
 }
 
 void loop() {
+  int numPlates;
+  int depth;
+  bool steps[3];
+  while (true)
+  {
+    plateNumberSetup();
+    numPlates = plateNumberInput();
+    depthSetup();
+    depth = depthInput();
+    washStepSetup();
+    washStepInput(steps);
+    if (paramCheck(numPlates, depth, steps))
+      break;
+  }
 
-  
-  boolean steps[3] =  {true, false, false };
-  int num_plates = 2;
-  int depth = 10;
+  run_all_cycles(steps, numPlates, depth);
 
-  run_all_cycles(steps, num_plates, depth);
+  redo();
 }
