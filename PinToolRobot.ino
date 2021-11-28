@@ -1255,7 +1255,9 @@ void run_startup(){
 
   // LCD Startup function
   lcd_startup();
+  Serial.print("before greeting");
   greeting();
+  Serial.print("after greeting");
 
   // Set the state of any pins used as inputs
   set_pins();
@@ -1271,10 +1273,6 @@ void run_startup(){
       break;
     }
   }
-  // Find reference positions
-  ptr_ble.send_data();
-  calibrate_motors();
-  ptr_ble.update_and_send();
 }
 
 void setup() {
@@ -1283,11 +1281,12 @@ void setup() {
 }
 
 void loop() {
-  int numPlates;
-  int depth;
-  bool steps[3];
+  int numPlates = 3;
+  int depth = 10;
+  bool steps[3] = {true, false,false};
   while (true)
   {
+    tft.fillScreen(BLACK);
     plateNumberSetup();
     numPlates = plateNumberInput();
     depthSetup();
@@ -1295,8 +1294,16 @@ void loop() {
     washStepSetup();
     washStepInput(steps);
     if (paramCheck(numPlates, depth, steps))
+      tft.fillScreen(BLACK);
+      progressScreen(0, "Waiting");
       break;
   }
+    // Find reference positions
+//    ptr_ble.send_data();
+    Serial.print("after sending data");
+    calibrate_motors();
+//    ptr_ble.update_and_send();
+    Serial.print("after updating and sending");
 
   run_all_cycles(steps, numPlates, depth);
 
