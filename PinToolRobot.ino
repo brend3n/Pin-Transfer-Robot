@@ -27,7 +27,8 @@
 
 // Direction and Step pins for all motors
 #define dirPinx   40
-#define stepPinx  41
+// #define stepPinx  41
+#define stepPinx  52
 
 #define dirPiny   38
 #define stepPiny  39
@@ -36,7 +37,8 @@
 #define stepPinz1 47
 
 #define dirPinz2  44
-#define stepPinz2 45
+// #define stepPinz2 45
+#define stepPinz2 35
 
 /*###########################################################################################*/
 /*Position Constants*/
@@ -54,62 +56,64 @@
 // #define Plate_Offset 290
 #define Plate_Offset 319
 
+
+// making this negative 
 #define BASE_PLATE_STEPS -1881
 
 #define PINS_ABOVE_WELL_PLATE_OPENING_STEPS -1897
-#define PINS_AT_BOTTOM_OF_WELL_PLATE_STEPS -2128
+#define PINS_AT_BOTTOM_OF_WELL_PLATE_STEPS  -2128
 
 #define Cell_Input_Stack_X 2063
-#define Cell_Input_Stack_Y 3423
+#define Cell_Input_Stack_Y -3423
 #define Cell_Input_Stack_Z1 Z_HIGH
 #define Cell_Input_Stack_Z2 BASE_PLATE_STEPS
 
 #define Cell_Output_Stack_X 873
-#define Cell_Output_Stack_Y 3351
+#define Cell_Output_Stack_Y -3351
 #define Cell_Output_Stack_Z1 Z_HIGH
 #define Cell_Output_Stack_Z2 BASE_PLATE_STEPS
 
 #define Chemical_Input_Stack_X 2063
-#define Chemical_Input_Stack_Y 6091
+#define Chemical_Input_Stack_Y -6091
 //#define Chemical_Output_Stack_X 899
 //#define Chemical_Output_Stack_Y 6016
 
 #define Chemical_Output_Stack_X 873
-#define Chemical_Output_Stack_Y 6016
+#define Chemical_Output_Stack_Y -6016
 
 #define Cell_Transfer_Area_Gripper_X 1463
-#define Cell_Transfer_Area_Gripper_Y 3358
+#define Cell_Transfer_Area_Gripper_Y -3358
 #define Cell_Transfer_Area_Gripper_Z1 Z_HIGH
 #define Cell_Transfer_Area_Gripper_Z2 BASE_PLATE_STEPS
 
 #define Chemical_Transfer_Area_Gripper_X 1467
-#define Chemical_Transfer_Area_Gripper_Y 6051
+#define Chemical_Transfer_Area_Gripper_Y -6051
 #define Chemical_Transfer_Area_Gripper_Z1 Z_HIGH
 #define Chemical_Transfer_Area_Gripper_Z2 BASE_PLATE_STEPS
 
 #define Cell_Transfer_Area_Pin_Tool_X 845
-#define Cell_Transfer_Area_Pin_Tool_Y 3294
+#define Cell_Transfer_Area_Pin_Tool_Y -3294
 
 #define Chemical_Transfer_Area_Pin_Tool_X 841
-#define Chemical_Transfer_Area_Pin_Tool_Y 5962
+#define Chemical_Transfer_Area_Pin_Tool_Y -5962
 
 #define Solution_1_X 1451
-#define Solution_1_Y 486
+#define Solution_1_Y -486
 #define Solution_1_Z1 -1680
 #define Solution_1_Z2 Z_HIGH
 
 #define Solution_2_X 855
-#define Solution_2_Y 417
+#define Solution_2_Y -417
 #define Solution_2_Z1 -1656
 #define Solution_2_Z2 Z_HIGH
 
 #define Solution_3_X 249
-#define Solution_3_Y 334
+#define Solution_3_Y -334
 #define Solution_3_Z1 -1657
 #define Solution_3_Z2 Z_HIGH
 
 #define Fan_Heater_X 1908
-#define Fan_Heater_Y 3318
+#define Fan_Heater_Y -3318
 #define Fan_Heater_Z1 -154
 #define Fan_Heater_Z2 Z_HIGH
 
@@ -142,8 +146,8 @@ MCUFRIEND_kbv tft;
 /*###########################################################################################*/
 /*Bluetooth*/
 
-#define BLE_RX 51
-#define BLE_TX 53
+#define BLE_RX 22
+#define BLE_TX 23
 
 
 struct Ptr_Ble {
@@ -153,7 +157,6 @@ struct Ptr_Ble {
   void send_data();
   void update_and_send();
   
-  SoftwareSerial *bleSerial;
   byte state;
   byte plate_number;
   byte num_plates;
@@ -161,8 +164,7 @@ struct Ptr_Ble {
   enum State {CALIBRATING, CALIBRATED, SRCUNLOADED, RCPUNLOADED, PROCESSED, SRCLOADED, RCPLOADED, WASHED, DRIED, DONE};
 
   Ptr_Ble() {
-    SoftwareSerial ble(BLE_RX, BLE_TX);
-    *bleSerial = ble;
+    Serial1.begin(9600);
     state = CALIBRATING;
     plate_number = 0;
     num_plates = -1;
@@ -209,7 +211,7 @@ void Ptr_Ble::print_info() {
 
 // helper
 void Ptr_Ble::send_data() {
-  bleSerial->write(plate_number * 10 + state);
+  Serial1.write(plate_number * 10 + state);
   // Just for good measure.
   delay(100);
 }
@@ -342,13 +344,11 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
     print_current_position();
     
     // Set the current speed and run until the limit switch is hit
-    motor->setSpeed(100 * dir);
+    motor->setSpeed(175 * dir);
     while (digitalRead(limit_switch) != LOW){
         motor->runSpeed();
     }
 
-    // ERASE THIS LATER OR ELSE I WILL KILL A MANATEE WITH MY BARE TEETH AND GIVE THE MANATEE TAIL TO MY FRIEND ADOMININC AND THEN I WILL SAY WPAJ THERE BUDYDDYN WHY ARENT YPU LOOKING AT ME 
-    delay(0);
     // Distance from starting position to limit switch
     // Negative because reference 0 is at limit switch and all of other distances are negative relative to the limit switch
     steps = -1*motor->currentPosition();
@@ -374,6 +374,8 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
 // Shows the motor's (x,y,z1,z2) coordinates from where the motor starts before calibration
 
 void calibrate_motors(){ 
+
+  gripper(CLOSE, servo);
   int val;
 
   Serial.println("Calibrating Z1");
@@ -382,22 +384,15 @@ void calibrate_motors(){
   Serial.println("Calibrating Z2");
   long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
 
+  Serial.println("Calibrating Y");
+  long y_start = calibrate_motor(&motor_y, y_switch, 1);
+
   Serial.println("Calibrating gantry");
   long x_start = calibrate_motor(&gantry , x_switch, -1);
 
-  Serial.println("Calibrating Y");
-  long y_start = calibrate_motor(&motor_y, y_switch, -1);
- 
-  motor_z1.setSpeed(SPEED_Z);
-  motor_z2.setSpeed(SPEED_Z);
-//  gantry.setSpeed(SPEED_GANTRY);
-  motor_y.setSpeed(SPEED_Y);
-  
 
-  // gantry.runToNewPosition(x_start);
-  // motor_y.runToNewPosition(y_start);
-  // motor_z1.runToNewPosition(z1_start);
-  // motor_z2.runToNewPosition(z2_start);
+  gantry.runToNewPosition(1000);
+  gripper(OPEN,servo);
 }
 
 // Test code for verifying limit switches are working
@@ -453,6 +448,7 @@ void move_to_coordinate_x_first(long x, long y, long z1, long z2){
   motor_z2.setSpeed(SPEED_Z);
   gantry.setSpeed(SPEED_GANTRY);
   motor_y.setSpeed(SPEED_Y);
+  
 
   gantry.runToNewPosition(x);
   motor_y.runToNewPosition(y);
@@ -686,7 +682,7 @@ void do_cycle(boolean *wash_steps, int pin_depth, int grab_height, int stack_hei
 
 void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
 
-  int grab_height = BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1));
+  int grab_height = (BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1)));
   int stack_height = BASE_PLATE_STEPS;
   
   for(int i = 0; i < num_plates; i++){
@@ -696,6 +692,7 @@ void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
     // Update where the next plate is located at.
     grab_height -= Plate_Offset;
     stack_height += Plate_Offset;
+
   }
 }
 
@@ -1255,9 +1252,7 @@ void run_startup(){
 
   // LCD Startup function
   lcd_startup();
-  Serial.print("before greeting");
   greeting();
-  Serial.print("after greeting");
 
   // Set the state of any pins used as inputs
   set_pins();
@@ -1265,25 +1260,43 @@ void run_startup(){
   // Set the max speed and acceleration values for each motor
   configure_motors();
 
-  Serial.println("Press x_limit_switch to start calibration");
-  while(true){
-    servo.write(0);
-    if(digitalRead(x_switch)== LOW){
-      Serial.println("Starting calibration.");
-      break;
-    }
-  }
+//   Serial.println("Press x_limit_switch to start calibration");
+//   while(true){
+//     servo.write(0);
+//       Serial.println("Starting calibration.");
+//       break;
+//     }
+//   }
 }
 
+
+void test_directions(){
+
+
+  motor_z2.setCurrentPosition(0);
+  gripper(OPEN, servo);
+  motor_z2.runToNewPosition(-50);
+
+  delay(2000);
+  gripper(CLOSE, servo);
+  
+  motor_z2.runToNewPosition(50);
+ 
+delay(2000);
+
+
+
+  
+}
 void setup() {
   Serial.begin(9600);
   run_startup();
 }
 
 void loop() {
-  int numPlates = 3;
-  int depth = 10;
-  bool steps[3] = {true, false,false};
+  int numPlates;
+  int depth;
+  bool steps[3];
   while (true)
   {
     tft.fillScreen(BLACK);
@@ -1299,11 +1312,9 @@ void loop() {
       break;
   }
     // Find reference positions
-//    ptr_ble.send_data();
-    Serial.print("after sending data");
+    ptr_ble.send_data();
     calibrate_motors();
-//    ptr_ble.update_and_send();
-    Serial.print("after updating and sending");
+    ptr_ble.update_and_send();
 
   run_all_cycles(steps, numPlates, depth);
 
