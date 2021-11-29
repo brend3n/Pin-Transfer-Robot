@@ -43,8 +43,8 @@
 /*###########################################################################################*/
 /*Position Constants*/
 
-#define Z_HIGH -100
-#define Z_WASH_HIGH -800
+#define Z_HIGH 100
+#define Z_WASH_HIGH 800
 
 #define drying_time_ms 10000
 #define time_in_solution_ms 1000
@@ -58,10 +58,10 @@
 
 
 // making this negative 
-#define BASE_PLATE_STEPS -1881
+#define BASE_PLATE_STEPS 1881
 
-#define PINS_ABOVE_WELL_PLATE_OPENING_STEPS -1897
-#define PINS_AT_BOTTOM_OF_WELL_PLATE_STEPS  -2128
+#define PINS_ABOVE_WELL_PLATE_OPENING_STEPS 1897
+#define PINS_AT_BOTTOM_OF_WELL_PLATE_STEPS  2128
 
 #define Cell_Input_Stack_X 2063
 #define Cell_Input_Stack_Y -3423
@@ -344,7 +344,7 @@ long calibrate_motor(AccelStepper *motor, int limit_switch, short dir){
     print_current_position();
     
     // Set the current speed and run until the limit switch is hit
-    motor->setSpeed(175 * dir);
+    motor->setSpeed(100 * dir);
     while (digitalRead(limit_switch) != LOW){
         motor->runSpeed();
     }
@@ -382,7 +382,7 @@ void calibrate_motors(){
   long z1_start = calibrate_motor(&motor_z1, z1_switch, 1); 
 
   Serial.println("Calibrating Z2");
-  long z2_start = calibrate_motor(&motor_z2, z2_switch, 1); 
+  long z2_start = calibrate_motor(&motor_z2, z2_switch, -1); 
 
   Serial.println("Calibrating Y");
   long y_start = calibrate_motor(&motor_y, y_switch, 1);
@@ -682,7 +682,7 @@ void do_cycle(boolean *wash_steps, int pin_depth, int grab_height, int stack_hei
 
 void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
 
-  int grab_height = (BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1)));
+  int grab_height = -(BASE_PLATE_STEPS + (Plate_Offset * (num_plates - 1)));
   int stack_height = BASE_PLATE_STEPS;
   
   for(int i = 0; i < num_plates; i++){
@@ -691,8 +691,9 @@ void run_all_cycles(boolean * wash_steps, short num_plates, int pin_depth ){
 
     // Update where the next plate is located at.
     grab_height -= Plate_Offset;
+    grab_height *= -1;
     stack_height += Plate_Offset;
-
+    stack_height *= -1;
   }
 }
 
@@ -1269,25 +1270,6 @@ void run_startup(){
 //   }
 }
 
-
-void test_directions(){
-
-
-  motor_z2.setCurrentPosition(0);
-  gripper(OPEN, servo);
-  motor_z2.runToNewPosition(-50);
-
-  delay(2000);
-  gripper(CLOSE, servo);
-  
-  motor_z2.runToNewPosition(50);
- 
-delay(2000);
-
-
-
-  
-}
 void setup() {
   Serial.begin(9600);
   run_startup();
