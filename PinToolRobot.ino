@@ -221,6 +221,11 @@ void Ptr_Ble::update_and_send() {
   send_data();
 }
 
+void Ptr_Ble::reset() {
+  state = CALIBRATING;
+  plate_number = 0;
+  num_plates = -1;
+}
 
 Ptr_Ble ptr_ble;
 
@@ -1294,6 +1299,8 @@ void setup() {
 }
 
 void loop() {
+  ptr_ble.reset();
+
   int numPlates;
   int depth;
   bool steps[3];
