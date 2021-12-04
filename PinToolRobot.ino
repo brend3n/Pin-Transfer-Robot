@@ -11,13 +11,6 @@
 #include <TouchScreen.h>
 #include <SoftwareSerial.h>
 
-/*  
-  A Phallic Haiku
-
-  PENIS PENIS PE
-  PENUS PENSUS PENYASSS BITCH 
-  PENUS SNIP SNIP SNIP
-*/
 
 /*###########################################################################################*/
 /* Motor Pin Definitions*/
