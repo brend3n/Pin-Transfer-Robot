@@ -83,12 +83,17 @@ p {
     margin: auto;
     height: 480px;
     width: 100%;
+    background-color: black;
 }
 
-#sd1Documentation {
+#projectSummary, #sd1Documentation {
     width: 60%;
     height: 1080px;
     margin: auto;
+}
+
+#projectSummary {
+    height: 1200px;
 }
 
 #finalPresentation {
@@ -101,6 +106,10 @@ p {
     margin: auto;
     height: 480px;
     width: 100%;
+}
+
+#finalPresentationSlides {
+    height: 650px;
 }
 
 #conferencePaper, #midtermDemo, #showcase {
