@@ -44,10 +44,18 @@ p {
     display: flex;
     justify-content: center;
     width: 100%;
+    height: 480px;
+}
+
+.groupWrapper div {
+    margin: auto;
+    word-wrap: break=word;
+    width: 100%;
+    flex-grow: 100;
 }
 
 #divideAndConquer {
-    height: 720px;
+    height: 1080px;
     width: 60%;
     margin: auto;
 }
