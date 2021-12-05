@@ -50,12 +50,28 @@ p {
     line-height: 2;
 }
 
+.header {
+    margin: auto;
+}
+
+#divideAndConquer {
+    height: 720px;
+    width: 60%;
+    margin: auto;
+}
+
 #midtermDemo {
     margin: auto;
     display: flex;
     justify-content: center;
     height: 480px;
     width: 50%;
+}
+
+#sd1Documentation {
+    width: 60%;
+    height: 1080px;
+    margin: auto;
 }
 
 #finalPresentation {
