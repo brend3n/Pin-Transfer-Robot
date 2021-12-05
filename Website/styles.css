@@ -1,0 +1,86 @@
+h1 {
+    font-family: 'Times New Roman', Times, serif;
+}
+
+p {
+    font-size: 20px;
+}
+
+div {
+    text-align:center;
+}
+
+/* #ptr1 {
+    width: 1920px;
+    height: 1080px;
+} */
+
+#ptr1 {
+    width: 1280px;
+    height: 720px;
+}
+
+/* #ptr1 {
+    width: 720px;
+    height: 480px
+} */
+
+#cdr {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+#cdr div {
+    margin: auto;
+    height: 480px;
+    width: 100%;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+}
+
+#divideAndConquer {
+
+}
+
+p {
+    line-height: 2;
+}
+
+#midtermDemo {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    height: 480px;
+    width: 50%;
+}
+
+#finalPresentation {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+#finalPresentation div {
+    margin: auto;
+    height: 480px;
+    width: 100%;
+}
+
+#showcase {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    width: 50%;
+    height: 480px;
+}
+
+.groupWrapper {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
