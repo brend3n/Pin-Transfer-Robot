@@ -7,7 +7,7 @@ p {
 }
 
 div {
-    text-align:center;
+    text-align: center;
 }
 
 /* #ptr1 {
@@ -25,25 +25,10 @@ div {
     height: 480px
 } */
 
-#cdr {
-    margin: auto;
-    display: flex;
-    justify-content: center;
-}
-
-#cdr div {
-    margin: auto;
-    height: 480px;
-    width: 100%;
-}
 
 iframe {
     width: 100%;
     height: 100%;
-}
-
-#divideAndConquer {
-
 }
 
 p {
@@ -54,18 +39,42 @@ p {
     margin: auto;
 }
 
+.groupWrapper {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
 #divideAndConquer {
     height: 720px;
     width: 60%;
     margin: auto;
 }
 
-#midtermDemo {
+#finalPresentationHeader, #cdrHeader {
+    margin: auto;
+    display: flex;
+}
+
+#finalPresentationHeader div, #cdrHeader div {
+    flex-grow: 100;
+}
+
+#midtermDemoHeader {
+    margin:auto;
+}
+
+#cdr {
     margin: auto;
     display: flex;
     justify-content: center;
+}
+
+#cdr div {
+    margin: auto;
     height: 480px;
-    width: 50%;
+    width: 100%;
 }
 
 #sd1Documentation {
@@ -86,17 +95,10 @@ p {
     width: 100%;
 }
 
-#showcase {
+#midtermDemo, #showcase {
     margin: auto;
     display: flex;
     justify-content: center;
     width: 50%;
     height: 480px;
-}
-
-.groupWrapper {
-    margin: auto;
-    display: flex;
-    justify-content: center;
-    width: 100%;
 }
