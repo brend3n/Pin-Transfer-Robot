@@ -61,7 +61,7 @@ p {
     flex-grow: 100;
 }
 
-#midtermDemoHeader {
+#conferencePaperHeader, #midtermDemoHeader {
     margin:auto;
 }
 
@@ -95,10 +95,14 @@ p {
     width: 100%;
 }
 
-#midtermDemo, #showcase {
+#conferencePaper, #midtermDemo, #showcase {
     margin: auto;
     display: flex;
     justify-content: center;
     width: 50%;
     height: 480px;
+}
+
+#conferencePaper {
+    height: 940px;
 }
