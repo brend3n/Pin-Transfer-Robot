@@ -83,7 +83,6 @@ p {
     margin: auto;
     height: 480px;
     width: 100%;
-    background-color: black;
 }
 
 #projectSummary, #sd1Documentation {
@@ -108,11 +107,7 @@ p {
     width: 100%;
 }
 
-#finalPresentationSlides {
-    height: 650px;
-}
-
-#conferencePaper, #midtermDemo, #showcase {
+#finalPresentationDemo, #conferencePaper, #midtermDemo, #showcase {
     margin: auto;
     display: flex;
     justify-content: center;
