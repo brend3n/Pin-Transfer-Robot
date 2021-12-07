@@ -54,7 +54,7 @@ p {
     flex-grow: 100;
 }
 
-#divideAndConquer {
+#initialDoc, #divideAndConquer {
     height: 1080px;
     width: 60%;
     margin: auto;
@@ -85,7 +85,7 @@ p {
     width: 100%;
 }
 
-#projectSummary, #sd1Documentation {
+#sd2Documentation, #projectSummary, #sd1Documentation {
     width: 60%;
     height: 1080px;
     margin: auto;
